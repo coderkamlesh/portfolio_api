@@ -2,7 +2,7 @@ name: Deploy to AWS Lambda
 
 on:
   push:
-    branches: [main,master]
+    branches: [main, master]
   workflow_dispatch:
 
 env:
@@ -37,21 +37,18 @@ jobs:
 
       - name: Build & Push image to ECR (arm64)
         id: build-push
-        env:
-          REGISTRY: ${{ steps.ecr-login.outputs.registry }}
-        run: |
-          IMAGE_URI=$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          IMAGE_LATEST=$REGISTRY/$ECR_REPOSITORY:latest
-
-          docker buildx build \
-            --platform linux/arm64 \
-            --provenance=false \
-            --sbom=false \
-            -t $IMAGE_URI \
-            -t $IMAGE_LATEST \
-            --push .
-
-          echo "image_uri=$IMAGE_URI" >> $GITHUB_OUTPUT
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/arm64
+          push: true
+          provenance: false
+          sbom: false
+          tags: |
+            ${{ steps.ecr-login.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
+            ${{ steps.ecr-login.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Check if Lambda function exists
         id: check-lambda
@@ -72,7 +69,7 @@ jobs:
         run: |
           aws lambda update-function-code \
             --function-name "$LAMBDA_FUNCTION_NAME" \
-            --image-uri "${{ steps.build-push.outputs.image_uri }}" \
+            --image-uri "${{ steps.ecr-login.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}" \
             --region ap-south-1
 
           aws lambda wait function-updated \
@@ -83,5 +80,5 @@ jobs:
         run: |
           echo "### Deploy Summary 🚀" >> $GITHUB_STEP_SUMMARY
           echo "- Region: \`ap-south-1\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Image: \`${{ steps.build-push.outputs.image_uri }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Image: \`${{ steps.ecr-login.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- Lambda updated: \`${{ steps.check-lambda.outputs.exists }}\`" >> $GITHUB_STEP_SUMMARY
