@@ -26,6 +26,12 @@ func main() {
 		w.Write([]byte(`{"status":"ok","service":"portfolio-api"}`))
 	})
 
+	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"status":"Health is good","message":"portfolio api project running"}`))
+	})
+
 	addr := ":" + cfg.ServerPort
 	log.Printf("🚀 Server running on %s", addr)
 	if err := http.ListenAndServe(addr, r); err != nil {
