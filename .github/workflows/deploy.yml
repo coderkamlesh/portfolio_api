@@ -1,0 +1,87 @@
+name: Deploy to AWS Lambda
+
+on:
+  push:
+    branches: [main,master]
+  workflow_dispatch:
+
+env:
+  ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+  LAMBDA_FUNCTION_NAME: ${{ secrets.LAMBDA_FUNCTION_NAME }}
+  IMAGE_TAG: ${{ github.sha }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-1
+
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build & Push image to ECR (arm64)
+        id: build-push
+        env:
+          REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+        run: |
+          IMAGE_URI=$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          IMAGE_LATEST=$REGISTRY/$ECR_REPOSITORY:latest
+
+          docker buildx build \
+            --platform linux/arm64 \
+            --provenance=false \
+            --sbom=false \
+            -t $IMAGE_URI \
+            -t $IMAGE_LATEST \
+            --push .
+
+          echo "image_uri=$IMAGE_URI" >> $GITHUB_OUTPUT
+
+      - name: Check if Lambda function exists
+        id: check-lambda
+        run: |
+          if [ -z "$LAMBDA_FUNCTION_NAME" ]; then
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "⚠️  LAMBDA_FUNCTION_NAME secret not set — skipping Lambda update"
+          elif aws lambda get-function --function-name "$LAMBDA_FUNCTION_NAME" --region ap-south-1 >/dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "✅ Lambda function found"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "⚠️  Lambda function '$LAMBDA_FUNCTION_NAME' not found — skipping update"
+          fi
+
+      - name: Update Lambda function code
+        if: steps.check-lambda.outputs.exists == 'true'
+        run: |
+          aws lambda update-function-code \
+            --function-name "$LAMBDA_FUNCTION_NAME" \
+            --image-uri "${{ steps.build-push.outputs.image_uri }}" \
+            --region ap-south-1
+
+          aws lambda wait function-updated \
+            --function-name "$LAMBDA_FUNCTION_NAME" \
+            --region ap-south-1
+
+      - name: Summary
+        run: |
+          echo "### Deploy Summary 🚀" >> $GITHUB_STEP_SUMMARY
+          echo "- Region: \`ap-south-1\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Image: \`${{ steps.build-push.outputs.image_uri }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Lambda updated: \`${{ steps.check-lambda.outputs.exists }}\`" >> $GITHUB_STEP_SUMMARY
