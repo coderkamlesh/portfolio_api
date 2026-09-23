@@ -1,0 +1,2 @@
+db ka schema banaya hai analyze kar le aur auth module bana admin login ka aur email otp se 2fa hoga esme aws ses use karenge
+jo credentails lagega env example me dal dena 
