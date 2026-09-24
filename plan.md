@@ -199,7 +199,7 @@ Sequence-wise implementation plan. Har module ka structure same:
 
 ---
 
-## Module 8: Social Links ⬜
+## Module 8: Social Links ✅
 
 **Table:** `social_links`
 
@@ -216,6 +216,8 @@ Sequence-wise implementation plan. Har module ka structure same:
 - `internal/repository/social_link_repo.go`
 - `internal/service/social_link_service.go`
 - `internal/handler/social_link_handler.go`
+
+**Status:** ✅ Complete
 
 ---
 
@@ -356,8 +358,8 @@ Sequence-wise implementation plan. Har module ka structure same:
 5. Projects          ✅
 6. Education         ✅
 7. Extras            ✅
-8. Social Links      ⬜ ← next
-9. File Upload (S3)  ⬜
+8. Social Links      ✅
+9. File Upload (S3)  ⬜ ← next
 10. Resume PDF       ⬜
 11. Analytics        ⬜
 12. Audit Log        ⬜

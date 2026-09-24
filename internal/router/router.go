@@ -64,6 +64,10 @@ func New(ctx context.Context, cfg *config.Config, db *database.DB) (http.Handler
 		Extras: repository.NewExtraRepository(db),
 	})
 	extraHandler := handler.NewExtraHandler(extraService)
+	socialLinkService := service.NewSocialLinkService(service.SocialLinkDeps{
+		SocialLinks: repository.NewSocialLinkRepository(db),
+	})
+	socialLinkHandler := handler.NewSocialLinkHandler(socialLinkService)
 
 	r := chi.NewRouter()
 	r.Use(chimw.RequestID)
@@ -112,6 +116,7 @@ func New(ctx context.Context, cfg *config.Config, db *database.DB) (http.Handler
 		r.Get("/projects/{id}", projectHandler.PublicProject)
 		r.Get("/education", educationHandler.PublicEducations)
 		r.Get("/extras", extraHandler.PublicExtras)
+		r.Get("/social-links", socialLinkHandler.PublicSocialLinks)
 	})
 
 	r.Route("/api/admin", func(r chi.Router) {
@@ -149,6 +154,8 @@ func New(ctx context.Context, cfg *config.Config, db *database.DB) (http.Handler
 		r.Post("/extras", extraHandler.CreateExtra)
 		r.Put("/extras/{id}", extraHandler.UpdateExtra)
 		r.Delete("/extras/{id}", extraHandler.DeleteExtra)
+
+		r.Put("/social-links", socialLinkHandler.ReplaceSocialLinks)
 	})
 
 	return r, nil

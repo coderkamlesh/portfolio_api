@@ -121,3 +121,12 @@ type ExtraStore interface {
 	UpdateExtra(ctx context.Context, extra *models.Extra) error
 	DeleteExtra(ctx context.Context, id string) error
 }
+
+// SocialLinkStore is the persistence contract for social_links. The admin write
+// replaces the whole set in one transaction, so the store exposes a single
+// ReplaceSocialLinks call rather than per-row CRUD.
+type SocialLinkStore interface {
+	ListSocialLinks(ctx context.Context) ([]models.SocialLink, error)
+	// ReplaceSocialLinks deletes every row and inserts the given set atomically.
+	ReplaceSocialLinks(ctx context.Context, links []models.SocialLink) error
+}

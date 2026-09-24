@@ -54,6 +54,7 @@ const (
 	CodeProjectNotFound       = "project_not_found"
 	CodeEducationNotFound     = "education_not_found"
 	CodeExtraNotFound         = "extra_not_found"
+	CodeSocialLinkConflict    = "social_link_conflict"
 )
 
 func errInvalidCredentials() error {
@@ -232,4 +233,21 @@ func errExtraRequired(field string) error {
 // the offending field.
 func errExtraValidation(message string) error {
 	return newErr(http.StatusBadRequest, "validation_failed", message)
+}
+
+func errSocialLinkValidation(message string) error {
+	return newErr(http.StatusBadRequest, "validation_failed", message)
+}
+
+// errSocialLinkRequired reports a missing required field of a social link.
+func errSocialLinkRequired(field string) error {
+	return newErr(http.StatusBadRequest, "validation_failed", field+" is required.")
+}
+
+// errSocialLinkExists reports a platform that appears twice in one payload. The
+// UNIQUE index on social_links.platform would reject the write, but catching it
+// here returns a precise message instead of a generic 409.
+func errSocialLinkExists(platform string) error {
+	return newErr(http.StatusConflict, CodeSocialLinkConflict,
+		fmt.Sprintf("A social link for %q already exists in this payload.", platform))
 }

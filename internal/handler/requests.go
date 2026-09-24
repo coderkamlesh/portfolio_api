@@ -230,3 +230,29 @@ func (b extraRequest) input() service.ExtraInput {
 		DisplayOrder:  b.DisplayOrder,
 	}
 }
+
+// socialLinkReplaceRequest is the body of PUT /api/admin/social-links. It always
+// carries the complete set, because the write replaces every stored row.
+type socialLinkReplaceRequest struct {
+	Links []socialLinkRequest `json:"links"`
+}
+
+// socialLinkRequest is one entry inside the replace payload.
+type socialLinkRequest struct {
+	Platform     string `json:"platform"`
+	URL          string `json:"url"`
+	DisplayOrder *int   `json:"display_order"`
+}
+
+// input converts the decoded payload into the service input.
+func (b socialLinkReplaceRequest) input() service.SocialLinkReplaceInput {
+	links := make([]service.SocialLinkInput, 0, len(b.Links))
+	for i := range b.Links {
+		links = append(links, service.SocialLinkInput{
+			Platform:     b.Links[i].Platform,
+			URL:          b.Links[i].URL,
+			DisplayOrder: b.Links[i].DisplayOrder,
+		})
+	}
+	return service.SocialLinkReplaceInput{Links: links}
+}
