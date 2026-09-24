@@ -44,6 +44,10 @@ func New(ctx context.Context, cfg *config.Config, db *database.DB) (http.Handler
 		Profiles: repository.NewProfileRepository(db),
 	})
 	profileHandler := handler.NewProfileHandler(profileService)
+	skillService := service.NewSkillService(service.SkillDeps{
+		Skills: repository.NewSkillRepository(db),
+	})
+	skillHandler := handler.NewSkillHandler(skillService)
 
 	r := chi.NewRouter()
 	r.Use(chimw.RequestID)
@@ -86,6 +90,7 @@ func New(ctx context.Context, cfg *config.Config, db *database.DB) (http.Handler
 	r.Route("/api/public", func(r chi.Router) {
 		r.Use(middleware.NoStore)
 		r.Get("/profile", profileHandler.PublicProfile)
+		r.Get("/skills", skillHandler.PublicSkills)
 	})
 
 	r.Route("/api/admin", func(r chi.Router) {
@@ -93,6 +98,16 @@ func New(ctx context.Context, cfg *config.Config, db *database.DB) (http.Handler
 		r.Use(middleware.NoStore)
 		r.Get("/profile", profileHandler.AdminProfile)
 		r.Put("/profile", profileHandler.UpdateProfile)
+
+		r.Get("/skill-categories", skillHandler.ListCategories)
+		r.Post("/skill-categories", skillHandler.CreateCategory)
+		r.Put("/skill-categories/{id}", skillHandler.UpdateCategory)
+		r.Delete("/skill-categories/{id}", skillHandler.DeleteCategory)
+
+		r.Get("/skills", skillHandler.ListSkills)
+		r.Post("/skills", skillHandler.CreateSkill)
+		r.Put("/skills/{id}", skillHandler.UpdateSkill)
+		r.Delete("/skills/{id}", skillHandler.DeleteSkill)
 	})
 
 	return r, nil

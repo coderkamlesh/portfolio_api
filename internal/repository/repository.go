@@ -5,6 +5,7 @@ package repository
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 
 	"github.com/coderkamlesh/portfolio_api/internal/database"
 	"github.com/coderkamlesh/portfolio_api/internal/models"
@@ -27,6 +28,29 @@ func notFound(err error) error {
 		return models.ErrNotFound
 	}
 	return err
+}
+
+// affectedOrNotFound reports models.ErrNotFound when an UPDATE or DELETE
+// matched no row, so services can map a missing row to a 404.
+func affectedOrNotFound(res sql.Result, op string) error {
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("%s: rows affected: %w", op, err)
+	}
+	if affected == 0 {
+		return models.ErrNotFound
+	}
+	return nil
+}
+
+// conflictOr maps a UNIQUE-constraint failure to models.ErrConflict so the
+// service layer can answer 409 instead of a generic 500. The driver error stays
+// in the chain for the logs.
+func conflictOr(op string, err error) error {
+	if database.IsUniqueViolation(err) {
+		return fmt.Errorf("%s: %w", op, errors.Join(models.ErrConflict, err))
+	}
+	return fmt.Errorf("%s: %w", op, err)
 }
 
 // boolToInt converts a Go bool for an INTEGER column.

@@ -11,6 +11,12 @@ import (
 // service layer translates it into the right API error.
 var ErrNotFound = errors.New("models: not found")
 
+// ErrConflict is returned by repositories when a UNIQUE constraint rejects a
+// write. The service layer translates it into the 409 the admin panel expects,
+// which is the safety net for a race between the service's duplicate check and
+// the insert.
+var ErrConflict = errors.New("models: conflict")
+
 // 2FA methods (admin_2fa.method).
 const (
 	TwoFAMethodEmailOTP = "EMAIL_OTP"

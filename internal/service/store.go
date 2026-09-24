@@ -55,3 +55,22 @@ type ProfileStore interface {
 	Find(ctx context.Context) (*models.Profile, error)
 	Upsert(ctx context.Context, profile *models.Profile) error
 }
+
+// SkillStore is the persistence contract for skill_categories and skills.
+type SkillStore interface {
+	ListCategories(ctx context.Context) ([]models.SkillCategory, error)
+	FindCategoryByID(ctx context.Context, id string) (*models.SkillCategory, error)
+	FindCategoryByName(ctx context.Context, name string) (*models.SkillCategory, error)
+	CreateCategory(ctx context.Context, category *models.SkillCategory) error
+	UpdateCategory(ctx context.Context, category *models.SkillCategory) error
+	DeleteCategory(ctx context.Context, id string) error
+
+	// ListSkills returns the skills of one category, or of every category when
+	// categoryID is empty.
+	ListSkills(ctx context.Context, categoryID string) ([]models.Skill, error)
+	FindSkillByID(ctx context.Context, id string) (*models.Skill, error)
+	FindSkillByName(ctx context.Context, categoryID, name string) (*models.Skill, error)
+	CreateSkill(ctx context.Context, skill *models.Skill) error
+	UpdateSkill(ctx context.Context, skill *models.Skill) error
+	DeleteSkill(ctx context.Context, id string) error
+}

@@ -45,6 +45,11 @@ const (
 	CodeInvalidPassword     = "invalid_password"
 	CodeSamePassword        = "password_unchanged"
 	CodeProfileNotFound     = "profile_not_found"
+
+	CodeSkillCategoryNotFound = "skill_category_not_found"
+	CodeSkillNotFound         = "skill_not_found"
+	CodeSkillCategoryExists   = "skill_category_exists"
+	CodeSkillExists           = "skill_exists"
 )
 
 func errInvalidCredentials() error {
@@ -126,4 +131,40 @@ func errProfileValidation(field string) error {
 
 func errInvalidProfileEmail() error {
 	return newErr(http.StatusBadRequest, "validation_failed", "email must be a valid email address.")
+}
+
+func errSkillCategoryNotFound() error {
+	return newErr(http.StatusNotFound, CodeSkillCategoryNotFound, "This skill category does not exist.")
+}
+
+func errSkillNotFound() error {
+	return newErr(http.StatusNotFound, CodeSkillNotFound, "This skill does not exist.")
+}
+
+func errSkillCategoryExists(name string) error {
+	return newErr(http.StatusConflict, CodeSkillCategoryExists,
+		fmt.Sprintf("A skill category named %q already exists.", name))
+}
+
+func errSkillExists(name string) error {
+	return newErr(http.StatusConflict, CodeSkillExists,
+		fmt.Sprintf("The skill %q already exists in this category.", name))
+}
+
+func errSkillValidation(field string) error {
+	return newErr(http.StatusBadRequest, "validation_failed", field+" is required.")
+}
+
+func errSkillValidationTooLong(field string, max int) error {
+	return newErr(http.StatusBadRequest, "validation_failed",
+		fmt.Sprintf("%s must be at most %d characters.", field, max))
+}
+
+func errSkillValidationControlChars(field string) error {
+	return newErr(http.StatusBadRequest, "validation_failed",
+		field+" must not contain control characters.")
+}
+
+func errSkillValidationDisplayOrder() error {
+	return newErr(http.StatusBadRequest, "validation_failed", "display_order must not be negative.")
 }

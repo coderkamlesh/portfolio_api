@@ -71,3 +71,21 @@ type updateProfileRequest struct {
 	CareerGapNote   string `json:"career_gap_note"`
 	ExperienceLevel string `json:"experience_level"`
 }
+
+// skillCategoryRequest is the body of POST /api/admin/skill-categories and
+// PUT /api/admin/skill-categories/{id}. An omitted display_order keeps the
+// stored order on update and defaults to 0 on create.
+type skillCategoryRequest struct {
+	Name         string `json:"name"`
+	DisplayOrder *int   `json:"display_order"`
+}
+
+// skillRequest is the body of POST /api/admin/skills and
+// PUT /api/admin/skills/{id}. category_id is required on create; on update an
+// omitted value keeps the current category.
+type skillRequest struct {
+	CategoryID   string `json:"category_id"`
+	Name         string `json:"name"`
+	IconSlug     string `json:"icon_slug"`
+	DisplayOrder *int   `json:"display_order"`
+}
