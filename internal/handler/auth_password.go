@@ -53,13 +53,14 @@ func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.svc.ForgotPassword(r.Context(), service.ForgotPasswordInput{Email: body.Email}, requestMeta(r)); err != nil {
+	challenge, err := h.svc.ForgotPassword(r.Context(), service.ForgotPasswordInput{Email: body.Email}, requestMeta(r))
+	if err != nil {
 		writeErr(w, r, err)
 		return
 	}
-	// Always the same answer, whether or not the address exists.
-	writeJSON(w, http.StatusAccepted, map[string]string{
-		"message": "If that email belongs to an admin account, a reset code is on its way.",
+	writeJSON(w, http.StatusAccepted, map[string]any{
+		"message":   "If that email belongs to an admin account, a reset code is on its way.",
+		"challenge": challenge,
 	})
 }
 

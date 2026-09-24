@@ -8,6 +8,7 @@ import (
 
 	"github.com/coderkamlesh/portfolio_api/internal/apierr"
 	"github.com/coderkamlesh/portfolio_api/internal/models"
+	"github.com/coderkamlesh/portfolio_api/internal/pkg/ids"
 	"github.com/coderkamlesh/portfolio_api/internal/security"
 )
 
@@ -53,38 +54,55 @@ func (s *AuthService) ChangePassword(ctx context.Context, adminID string, in Cha
 	return tokens, nil
 }
 
-// ForgotPassword mails a reset code. It always reports success so the endpoint
-// cannot be used to enumerate admin email addresses.
-func (s *AuthService) ForgotPassword(ctx context.Context, in ForgotPasswordInput, meta RequestMeta) error {
+// ForgotPassword mails a reset code and returns a client-facing challenge.
+// Unknown and inactive addresses receive a non-persisted challenge with the same
+// response shape so response content cannot be used to enumerate admin accounts.
+func (s *AuthService) ForgotPassword(ctx context.Context, in ForgotPasswordInput, meta RequestMeta) (*ChallengeView, error) {
 	emailAddress := strings.ToLower(strings.TrimSpace(in.Email))
 	if emailAddress == "" {
-		return nil
+		return s.syntheticResetChallenge(emailAddress), nil
 	}
 
 	admin, err := s.admins.FindByIdentifier(ctx, emailAddress)
 	if err != nil {
 		if errors.Is(err, models.ErrNotFound) {
 			log.Printf("🔐 auth: password reset requested for unknown address %s", emailAddress)
-			return nil
+			return s.syntheticResetChallenge(emailAddress), nil
 		}
-		return err
+		return nil, err
 	}
 	if !admin.IsActive {
-		return nil
+		return s.syntheticResetChallenge(emailAddress), nil
 	}
 
-	if _, err := s.issueOTP(ctx, admin, models.OTPPurposePasswordReset, meta); err != nil {
-		// Rate limiting is the only failure worth surfacing; mail problems are
-		// reported as success to keep the response indistinguishable.
+	challenge, err := s.issueOTP(ctx, admin, models.OTPPurposePasswordReset, meta)
+	if err != nil {
 		var apiErr *apierr.Error
-		if errors.As(err, &apiErr) && apiErr.Status == 429 {
-			return err
+		if !errors.As(err, &apiErr) ||
+			(apiErr.Code != CodeOTPTooMany && apiErr.Code != CodeEmailDeliveryFailed) {
+			return nil, err
 		}
-		log.Printf("⚠️  auth: reset mail failed for admin %s: %v", admin.ID, err)
-		return nil
+		// Rate limiting and mail failures use the same generic response as an
+		// unknown account so the endpoint cannot reveal whether email exists.
+		log.Printf("⚠️  auth: reset request not completed for admin %s: %v", admin.ID, err)
+		return s.syntheticResetChallenge(emailAddress), nil
 	}
 	s.auditEvent(ctx, admin.ID, models.AuditPasswordResetAsked, "", nil)
-	return nil
+	return challenge, nil
+}
+
+func (s *AuthService) syntheticResetChallenge(emailAddress string) *ChallengeView {
+	now := s.now()
+	return &ChallengeView{
+		ID:           ids.New(),
+		Purpose:      models.OTPPurposePasswordReset,
+		Email:        security.MaskEmail(emailAddress),
+		CodeLength:   s.cfg.OTPLength,
+		ExpiresAt:    now.Add(s.cfg.OTPTTL),
+		ExpiresIn:    int(s.cfg.OTPTTL.Seconds()),
+		AttemptsLeft: s.cfg.OTPMaxAttempts,
+		ResendAfter:  int(s.cfg.OTPResendCooldown.Seconds()),
+	}
 }
 
 // ResetPassword completes the reset flow and signs the admin in.

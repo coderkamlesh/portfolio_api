@@ -189,7 +189,8 @@ func TestVerifyLoginOTPRejectsUnknownChallenge(t *testing.T) {
 func TestVerifyLoginOTPRejectsPasswordResetChallenge(t *testing.T) {
 	h := newHarness(t)
 
-	if err := h.svc.ForgotPassword(context.Background(), ForgotPasswordInput{Email: testAdminEmail}, h.meta()); err != nil {
+	_, err := h.svc.ForgotPassword(context.Background(), ForgotPasswordInput{Email: testAdminEmail}, h.meta())
+	if err != nil {
 		t.Fatalf("ForgotPassword: %v", err)
 	}
 	code := h.mailer.lastCode(t)
@@ -204,7 +205,7 @@ func TestVerifyLoginOTPRejectsPasswordResetChallenge(t *testing.T) {
 		t.Fatal("no PASSWORD_RESET challenge was created")
 	}
 
-	_, err := h.svc.VerifyLoginOTP(context.Background(), VerifyOTPInput{
+	_, err = h.svc.VerifyLoginOTP(context.Background(), VerifyOTPInput{
 		ChallengeID: resetChallenge.ID, OTP: code,
 	}, h.meta())
 	if got := errorCode(err); got != CodeInvalidChallenge {

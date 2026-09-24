@@ -114,23 +114,62 @@ func TestChangePasswordRejectsReuse(t *testing.T) {
 func TestForgotPasswordIsSilentForUnknownAddresses(t *testing.T) {
 	h := newHarness(t)
 
-	if err := h.svc.ForgotPassword(context.Background(), ForgotPasswordInput{
+	challenge, err := h.svc.ForgotPassword(context.Background(), ForgotPasswordInput{
 		Email: "nobody@example.com",
-	}, h.meta()); err != nil {
+	}, h.meta())
+	if err != nil {
 		t.Fatalf("unknown address must not error: %v", err)
+	}
+	if challenge == nil || challenge.Purpose != models.OTPPurposePasswordReset {
+		t.Fatalf("unknown address challenge = %+v, want a password-reset challenge shape", challenge)
 	}
 	if h.mailer.count() != 0 {
 		t.Error("no mail may be sent to an unknown address")
+	}
+	if _, err := h.svc.ResetPassword(context.Background(), ResetPasswordInput{
+		ChallengeID: challenge.ID, OTP: "123456", NewPassword: "reset-passphrase-99",
+	}, h.meta()); errorCode(err) != CodeInvalidChallenge {
+		t.Fatalf("synthetic challenge returned %q, want %q", errorCode(err), CodeInvalidChallenge)
+	}
+}
+
+func TestForgotPasswordRateLimitLooksLikeUnknownAddress(t *testing.T) {
+	h := newHarness(t)
+	for i := 0; i < h.cfg.OTPMaxPerWindow; i++ {
+		h.otps.rows = append(h.otps.rows, &models.OTPChallenge{
+			ID:        "rate-limit-challenge",
+			AdminID:   testAdminID,
+			Purpose:   models.OTPPurposePasswordReset,
+			CreatedAt: h.now,
+			ExpiresAt: h.now.Add(h.cfg.OTPTTL),
+		})
+	}
+
+	challenge, err := h.svc.ForgotPassword(context.Background(), ForgotPasswordInput{
+		Email: testAdminEmail,
+	}, h.meta())
+	if err != nil {
+		t.Fatalf("rate-limited address must not expose an error: %v", err)
+	}
+	if challenge == nil || challenge.Purpose != models.OTPPurposePasswordReset {
+		t.Fatalf("returned challenge = %+v, want password-reset challenge shape", challenge)
+	}
+	if h.mailer.count() != 0 {
+		t.Error("no mail may be sent after the OTP window is exhausted")
 	}
 }
 
 func TestPasswordResetFlowReplacesPasswordAndSignsIn(t *testing.T) {
 	h := newHarness(t)
 
-	if err := h.svc.ForgotPassword(context.Background(), ForgotPasswordInput{
+	challenge, err := h.svc.ForgotPassword(context.Background(), ForgotPasswordInput{
 		Email: testAdminEmail,
-	}, h.meta()); err != nil {
+	}, h.meta())
+	if err != nil {
 		t.Fatalf("ForgotPassword: %v", err)
+	}
+	if challenge == nil || challenge.ID != resetChallengeID(t, h) {
+		t.Fatalf("returned challenge = %+v, want the pending reset challenge", challenge)
 	}
 	if h.mailer.count() != 1 {
 		t.Fatalf("mails sent = %d, want 1", h.mailer.count())
@@ -138,15 +177,15 @@ func TestPasswordResetFlowReplacesPasswordAndSignsIn(t *testing.T) {
 	code := h.mailer.lastCode(t)
 
 	// Wrong code first: it must consume an attempt, not the reset.
-	_, err := h.svc.ResetPassword(context.Background(), ResetPasswordInput{
-		ChallengeID: resetChallengeID(t, h), OTP: "000000", NewPassword: "reset-passphrase-99",
+	_, err = h.svc.ResetPassword(context.Background(), ResetPasswordInput{
+		ChallengeID: challenge.ID, OTP: "000000", NewPassword: "reset-passphrase-99",
 	}, h.meta())
 	if got := errorCode(err); got != CodeInvalidOTP {
 		t.Fatalf("wrong reset code returned %q, want %q", got, CodeInvalidOTP)
 	}
 
 	result, err := h.svc.ResetPassword(context.Background(), ResetPasswordInput{
-		ChallengeID: resetChallengeID(t, h), OTP: code, NewPassword: "reset-passphrase-99",
+		ChallengeID: challenge.ID, OTP: code, NewPassword: "reset-passphrase-99",
 	}, h.meta())
 	if err != nil {
 		t.Fatalf("ResetPassword: %v", err)
