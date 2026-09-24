@@ -19,12 +19,15 @@ import (
 type ProjectDeps struct {
 	Projects ProjectStore
 	Now      func() time.Time
+	// Audit records content changes for the admin trail. Optional.
+	Audit *Audit
 }
 
 // ProjectService owns the showcase-project use-cases of the portfolio.
 type ProjectService struct {
 	projects ProjectStore
 	now      func() time.Time
+	audit    *Audit
 }
 
 // NewProjectService builds the service.
@@ -33,7 +36,7 @@ func NewProjectService(deps ProjectDeps) *ProjectService {
 	if now == nil {
 		now = func() time.Time { return time.Now().UTC() }
 	}
-	return &ProjectService{projects: deps.Projects, now: now}
+	return &ProjectService{projects: deps.Projects, now: now, audit: deps.Audit}
 }
 
 // Input limits. db_schema.sql keeps these columns as unbounded TEXT, so the caps
@@ -169,6 +172,7 @@ func (s *ProjectService) CreateProject(ctx context.Context, in ProjectInput) (*A
 	if err := s.projects.SaveProject(ctx, project, bullets); err != nil {
 		return nil, err
 	}
+	s.audit.Record(ctx, auditEntityProject, project.ID, AuditActionCreate, nil, project)
 	return adminProjectView(project, bullets), nil
 }
 
@@ -190,17 +194,24 @@ func (s *ProjectService) UpdateProject(ctx context.Context, id string, in Projec
 		}
 		return nil, err
 	}
+	s.audit.Record(ctx, auditEntityProject, project.ID, AuditActionUpdate, existing, project)
 	return adminProjectView(project, bullets), nil
 }
 
-// DeleteProject removes a project and its bullets.
+// DeleteProject removes a project and its bullets. The row is loaded first so the
+// audit trail can record what was removed.
 func (s *ProjectService) DeleteProject(ctx context.Context, id string) error {
+	existing, err := s.findProject(ctx, id)
+	if err != nil {
+		return err
+	}
 	if err := s.projects.DeleteProject(ctx, id); err != nil {
 		if errors.Is(err, models.ErrNotFound) {
 			return errProjectNotFound()
 		}
 		return err
 	}
+	s.audit.Record(ctx, auditEntityProject, id, AuditActionDelete, existing, nil)
 	return nil
 }
 

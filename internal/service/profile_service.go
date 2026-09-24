@@ -18,12 +18,15 @@ const singletonProfileKey = 1
 type ProfileDeps struct {
 	Profiles ProfileStore
 	Now      func() time.Time
+	// Audit records content changes for the admin trail. Optional.
+	Audit *Audit
 }
 
 // ProfileService owns the singleton portfolio profile use-cases.
 type ProfileService struct {
 	profiles ProfileStore
 	now      func() time.Time
+	audit    *Audit
 }
 
 // NewProfileService builds the service.
@@ -32,7 +35,7 @@ func NewProfileService(deps ProfileDeps) *ProfileService {
 	if now == nil {
 		now = func() time.Time { return time.Now().UTC() }
 	}
-	return &ProfileService{profiles: deps.Profiles, now: now}
+	return &ProfileService{profiles: deps.Profiles, now: now, audit: deps.Audit}
 }
 
 // ProfileInput is the full replacement payload accepted by the admin profile
@@ -126,6 +129,15 @@ func (s *ProfileService) UpdateProfile(ctx context.Context, in ProfileInput) (*A
 		return nil, err
 	}
 
+	// The first save is a create and every later one is an update, so the
+	// previous row is captured here to decide which audit action to record.
+	existed := err == nil
+	var previous *models.Profile
+	if existed {
+		snapshot := *profile
+		previous = &snapshot
+	}
+
 	profile.FullName = in.FullName
 	profile.Title = in.Title
 	profile.Tagline = in.Tagline
@@ -145,6 +157,11 @@ func (s *ProfileService) UpdateProfile(ctx context.Context, in ProfileInput) (*A
 
 	if err := s.profiles.Upsert(ctx, profile); err != nil {
 		return nil, err
+	}
+	if existed {
+		s.audit.Record(ctx, auditEntityProfile, profile.ID, AuditActionUpdate, previous, profile)
+	} else {
+		s.audit.Record(ctx, auditEntityProfile, profile.ID, AuditActionCreate, nil, profile)
 	}
 	return adminProfileView(profile), nil
 }

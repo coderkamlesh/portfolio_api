@@ -19,12 +19,15 @@ import (
 type ExtraDeps struct {
 	Extras ExtraStore
 	Now    func() time.Time
+	// Audit records content changes for the admin trail. Optional.
+	Audit *Audit
 }
 
 // ExtraService owns the extras use-cases of the portfolio.
 type ExtraService struct {
 	extras ExtraStore
 	now    func() time.Time
+	audit  *Audit
 }
 
 // NewExtraService builds the service.
@@ -33,7 +36,7 @@ func NewExtraService(deps ExtraDeps) *ExtraService {
 	if now == nil {
 		now = func() time.Time { return time.Now().UTC() }
 	}
-	return &ExtraService{extras: deps.Extras, now: now}
+	return &ExtraService{extras: deps.Extras, now: now, audit: deps.Audit}
 }
 
 // Input limits. db_schema.sql keeps these columns as unbounded TEXT, so the caps
@@ -152,6 +155,7 @@ func (s *ExtraService) CreateExtra(ctx context.Context, in ExtraInput) (*AdminEx
 	if err := s.extras.CreateExtra(ctx, extra); err != nil {
 		return nil, err
 	}
+	s.audit.Record(ctx, auditEntityExtra, extra.ID, AuditActionCreate, nil, extra)
 	return adminExtraView(extra), nil
 }
 
@@ -172,17 +176,24 @@ func (s *ExtraService) UpdateExtra(ctx context.Context, id string, in ExtraInput
 		}
 		return nil, err
 	}
+	s.audit.Record(ctx, auditEntityExtra, extra.ID, AuditActionUpdate, existing, extra)
 	return adminExtraView(extra), nil
 }
 
-// DeleteExtra removes one entry.
+// DeleteExtra removes one entry. The row is loaded first so the audit trail can
+// record what was removed.
 func (s *ExtraService) DeleteExtra(ctx context.Context, id string) error {
+	existing, err := s.findExtra(ctx, id)
+	if err != nil {
+		return err
+	}
 	if err := s.extras.DeleteExtra(ctx, id); err != nil {
 		if errors.Is(err, models.ErrNotFound) {
 			return errExtraNotFound()
 		}
 		return err
 	}
+	s.audit.Record(ctx, auditEntityExtra, id, AuditActionDelete, existing, nil)
 	return nil
 }
 

@@ -54,7 +54,7 @@ func (h *ExtraHandler) CreateExtra(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	extra, err := h.svc.CreateExtra(r.Context(), body.input())
+	extra, err := h.svc.CreateExtra(adminContext(r), body.input())
 	if err != nil {
 		writeErr(w, r, err)
 		return
@@ -78,7 +78,7 @@ func (h *ExtraHandler) UpdateExtra(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	extra, err := h.svc.UpdateExtra(r.Context(), chi.URLParam(r, "id"), body.input())
+	extra, err := h.svc.UpdateExtra(adminContext(r), chi.URLParam(r, "id"), body.input())
 	if err != nil {
 		writeErr(w, r, err)
 		return
@@ -88,7 +88,7 @@ func (h *ExtraHandler) UpdateExtra(w http.ResponseWriter, r *http.Request) {
 
 // DeleteExtra handles DELETE /api/admin/extras/{id}.
 func (h *ExtraHandler) DeleteExtra(w http.ResponseWriter, r *http.Request) {
-	if err := h.svc.DeleteExtra(r.Context(), chi.URLParam(r, "id")); err != nil {
+	if err := h.svc.DeleteExtra(adminContext(r), chi.URLParam(r, "id")); err != nil {
 		writeErr(w, r, err)
 		return
 	}

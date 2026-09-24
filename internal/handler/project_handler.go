@@ -63,7 +63,7 @@ func (h *ProjectHandler) CreateProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	project, err := h.svc.CreateProject(r.Context(), body.input())
+	project, err := h.svc.CreateProject(adminContext(r), body.input())
 	if err != nil {
 		writeErr(w, r, err)
 		return
@@ -87,7 +87,7 @@ func (h *ProjectHandler) UpdateProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	project, err := h.svc.UpdateProject(r.Context(), chi.URLParam(r, "id"), body.input())
+	project, err := h.svc.UpdateProject(adminContext(r), chi.URLParam(r, "id"), body.input())
 	if err != nil {
 		writeErr(w, r, err)
 		return
@@ -98,7 +98,7 @@ func (h *ProjectHandler) UpdateProject(w http.ResponseWriter, r *http.Request) {
 // DeleteProject handles DELETE /api/admin/projects/{id}. Its bullets are
 // deleted with it.
 func (h *ProjectHandler) DeleteProject(w http.ResponseWriter, r *http.Request) {
-	if err := h.svc.DeleteProject(r.Context(), chi.URLParam(r, "id")); err != nil {
+	if err := h.svc.DeleteProject(adminContext(r), chi.URLParam(r, "id")); err != nil {
 		writeErr(w, r, err)
 		return
 	}

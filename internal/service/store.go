@@ -48,6 +48,12 @@ type RefreshStore interface {
 // AuditStore is the persistence contract for audit_log.
 type AuditStore interface {
 	Insert(ctx context.Context, e *models.AuditEntry) error
+	// ListAuditEntries returns a page of the trail, newest first. entityType and
+	// action are optional filters; an empty value means "any".
+	ListAuditEntries(ctx context.Context, entityType, action string, limit, offset int) ([]models.AuditEntry, int64, error)
+	// CountAuditEntries reports how many rows match the same filters, ignoring
+	// pagination, so the admin panel can render a total.
+	CountAuditEntries(ctx context.Context, entityType, action string) (int64, error)
 }
 
 // ProfileStore is the persistence contract for the singleton profile_details row.
@@ -130,3 +136,18 @@ type SocialLinkStore interface {
 	// ReplaceSocialLinks deletes every row and inserts the given set atomically.
 	ReplaceSocialLinks(ctx context.Context, links []models.SocialLink) error
 }
+
+// AnalyticsStore is the persistence contract for resume_downloads.
+type AnalyticsStore interface {
+	RecordDownload(ctx context.Context, download *models.ResumeDownload) error
+	// DownloadTotals returns the total and distinct-visitor counts since the
+	// start of the UTC day, plus one point per day in the range.
+	DownloadTotals(ctx context.Context, from time.Time, to time.Time) (*DownloadSummary, error)
+}
+
+// DownloadPoint is one day in the download chart.
+type DownloadPoint = models.DownloadPoint
+
+// DownloadSummary is the aggregate view shown by the admin dashboard.
+type DownloadSummary = models.DownloadSummary
+

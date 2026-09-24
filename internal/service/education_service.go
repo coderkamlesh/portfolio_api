@@ -18,12 +18,15 @@ import (
 type EducationDeps struct {
 	Educations EducationStore
 	Now        func() time.Time
+	// Audit records content changes for the admin trail. Optional.
+	Audit *Audit
 }
 
 // EducationService owns the education use-cases of the portfolio.
 type EducationService struct {
 	educations EducationStore
 	now        func() time.Time
+	audit      *Audit
 }
 
 // NewEducationService builds the service.
@@ -32,7 +35,7 @@ func NewEducationService(deps EducationDeps) *EducationService {
 	if now == nil {
 		now = func() time.Time { return time.Now().UTC() }
 	}
-	return &EducationService{educations: deps.Educations, now: now}
+	return &EducationService{educations: deps.Educations, now: now, audit: deps.Audit}
 }
 
 // Input limits. db_schema.sql keeps these columns as unbounded TEXT, so the caps
@@ -142,6 +145,7 @@ func (s *EducationService) CreateEducation(ctx context.Context, in EducationInpu
 	if err := s.educations.CreateEducation(ctx, education); err != nil {
 		return nil, err
 	}
+	s.audit.Record(ctx, auditEntityEducation, education.ID, AuditActionCreate, nil, education)
 	return adminEducationView(education), nil
 }
 
@@ -162,17 +166,24 @@ func (s *EducationService) UpdateEducation(ctx context.Context, id string, in Ed
 		}
 		return nil, err
 	}
+	s.audit.Record(ctx, auditEntityEducation, education.ID, AuditActionUpdate, existing, education)
 	return adminEducationView(education), nil
 }
 
-// DeleteEducation removes one entry.
+// DeleteEducation removes one entry. The row is loaded first so the audit trail
+// can record what was removed.
 func (s *EducationService) DeleteEducation(ctx context.Context, id string) error {
+	existing, err := s.findEducation(ctx, id)
+	if err != nil {
+		return err
+	}
 	if err := s.educations.DeleteEducation(ctx, id); err != nil {
 		if errors.Is(err, models.ErrNotFound) {
 			return errEducationNotFound()
 		}
 		return err
 	}
+	s.audit.Record(ctx, auditEntityEducation, id, AuditActionDelete, existing, nil)
 	return nil
 }
 

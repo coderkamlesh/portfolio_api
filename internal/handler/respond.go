@@ -4,6 +4,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,6 +16,7 @@ import (
 	"strings"
 
 	"github.com/coderkamlesh/portfolio_api/internal/apierr"
+	"github.com/coderkamlesh/portfolio_api/internal/middleware"
 	"github.com/coderkamlesh/portfolio_api/internal/service"
 )
 
@@ -96,6 +98,17 @@ func requestMeta(r *http.Request) service.RequestMeta {
 		IPAddress: clientIP(r),
 		UserAgent: truncate(r.UserAgent(), 255),
 	}
+}
+
+// adminContext returns a request context carrying the acting admin, so the
+// service layer can attribute an audit row without importing the middleware
+// package. On a public route the context is returned unchanged.
+func adminContext(r *http.Request) context.Context {
+	adminID, ok := middleware.AdminIDFromContext(r.Context())
+	if !ok {
+		return r.Context()
+	}
+	return service.WithActor(r.Context(), adminID)
 }
 
 func clientIP(r *http.Request) string {

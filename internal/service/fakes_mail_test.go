@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"sort"
 	"sync"
 	"testing"
 	"time"
@@ -110,6 +111,53 @@ type fakeAuditStore struct {
 func (f *fakeAuditStore) Insert(_ context.Context, e *models.AuditEntry) error {
 	f.entries = append(f.entries, e)
 	return nil
+}
+
+// ListAuditEntries returns a filtered page so the audit query tests can exercise
+// the same contract as the repository.
+func (f *fakeAuditStore) ListAuditEntries(_ context.Context, entityType, action string, limit, offset int) ([]models.AuditEntry, int64, error) {
+	matched := make([]models.AuditEntry, 0, len(f.entries))
+	for _, e := range f.entries {
+		if entityType != "" && e.EntityType != entityType {
+			continue
+		}
+		if action != "" && e.Action != action {
+			continue
+		}
+		matched = append(matched, *e)
+	}
+	total := int64(len(matched))
+
+	// Newest first, matching the repository ordering.
+	sort.SliceStable(matched, func(i, j int) bool {
+		if !matched[i].CreatedAt.Equal(matched[j].CreatedAt) {
+			return matched[i].CreatedAt.After(matched[j].CreatedAt)
+		}
+		return matched[i].ID > matched[j].ID
+	})
+
+	if offset > len(matched) {
+		offset = len(matched)
+	}
+	matched = matched[offset:]
+	if limit > 0 && limit < len(matched) {
+		matched = matched[:limit]
+	}
+	return matched, total, nil
+}
+
+func (f *fakeAuditStore) CountAuditEntries(_ context.Context, entityType, action string) (int64, error) {
+	var total int64
+	for _, e := range f.entries {
+		if entityType != "" && e.EntityType != entityType {
+			continue
+		}
+		if action != "" && e.Action != action {
+			continue
+		}
+		total++
+	}
+	return total, nil
 }
 
 func (f *fakeAuditStore) hasAction(action string) bool {

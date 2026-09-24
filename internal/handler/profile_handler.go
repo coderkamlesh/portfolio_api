@@ -56,7 +56,7 @@ func (h *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	profile, err := h.svc.UpdateProfile(r.Context(), service.ProfileInput{
+	profile, err := h.svc.UpdateProfile(adminContext(r), service.ProfileInput{
 		FullName:        body.FullName,
 		Title:           body.Title,
 		Tagline:         body.Tagline,

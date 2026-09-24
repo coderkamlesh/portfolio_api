@@ -35,7 +35,7 @@ func (h *SocialLinkHandler) ReplaceSocialLinks(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	links, err := h.svc.ReplaceSocialLinks(r.Context(), body.input())
+	links, err := h.svc.ReplaceSocialLinks(adminContext(r), body.input())
 	if err != nil {
 		writeErr(w, r, err)
 		return

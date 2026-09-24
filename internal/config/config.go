@@ -68,6 +68,13 @@ type Config struct {
 	S3GetPresignTTL  time.Duration
 	S3MaxImageBytes  int64
 	S3MaxResumeBytes int64
+
+	// ---- Analytics ----
+	// AnalyticsHashSecret keys the HMAC that turns a visitor IP into a stable
+	// identifier. It is a dedicated secret rather than the JWT secret, so neither
+	// key widens the other's exposure. When empty, downloads are still counted
+	// but unique-visitor counts report zero.
+	AnalyticsHashSecret string
 }
 
 // Load reads .env (when present) plus the process environment and validates
@@ -118,6 +125,8 @@ func Load() *Config {
 		S3GetPresignTTL:  getEnvMinutes("S3_GET_PRESIGN_TTL_MINUTES", 60),
 		S3MaxImageBytes:  getEnvInt64("S3_MAX_IMAGE_BYTES", 5<<20),
 		S3MaxResumeBytes: getEnvInt64("S3_MAX_RESUME_BYTES", 10<<20),
+
+		AnalyticsHashSecret: os.Getenv("ANALYTICS_HASH_SECRET"),
 	}
 
 	cfg.validate()

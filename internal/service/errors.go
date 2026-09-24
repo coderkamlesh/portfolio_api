@@ -258,6 +258,11 @@ func errUploadsDisabled() error {
 		"File uploads are not configured on this deployment.")
 }
 
+// errAuditValidation reports a malformed audit query.
+func errAuditValidation(message string) error {
+	return newErr(http.StatusBadRequest, "validation_failed", message)
+}
+
 // errSocialLinkRequired reports a missing required field of a social link.
 func errSocialLinkRequired(field string) error {
 	return newErr(http.StatusBadRequest, "validation_failed", field+" is required.")

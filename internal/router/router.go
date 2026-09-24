@@ -37,7 +37,6 @@ func newUploadHandler(ctx context.Context, cfg *config.Config) (*handler.UploadH
 
 	return handler.NewUploadHandler(service.NewUploadService(service.UploadDeps{
 		Presigner:      presigner,
-		Bucket:         cfg.S3Bucket,
 		UploadPrefix:   cfg.S3UploadPrefix,
 		PutPresignTTL:  cfg.S3PutPresignTTL,
 		GetPresignTTL:  cfg.S3GetPresignTTL,
@@ -54,6 +53,10 @@ func New(ctx context.Context, cfg *config.Config, db *database.DB) (http.Handler
 	}
 
 	tokens := security.NewTokenManager(cfg.JWTSecret, cfg.JWTIssuer, cfg.AccessTokenTTL)
+	// One recorder is shared by every content service so the audit trail has a
+	// single clock and a single store.
+	auditRepository := repository.NewAuditRepository(db)
+	auditRecorder := service.NewAudit(auditRepository, nil)
 	authService := service.NewAuthService(service.Deps{
 		Admins:  repository.NewAdminRepository(db),
 		TwoFA:   repository.NewTwoFARepository(db),
@@ -67,30 +70,37 @@ func New(ctx context.Context, cfg *config.Config, db *database.DB) (http.Handler
 	authHandler := handler.NewAuthHandler(authService)
 	profileService := service.NewProfileService(service.ProfileDeps{
 		Profiles: repository.NewProfileRepository(db),
+		Audit:    auditRecorder,
 	})
 	profileHandler := handler.NewProfileHandler(profileService)
 	skillService := service.NewSkillService(service.SkillDeps{
 		Skills: repository.NewSkillRepository(db),
+		Audit:    auditRecorder,
 	})
 	skillHandler := handler.NewSkillHandler(skillService)
 	experienceService := service.NewExperienceService(service.ExperienceDeps{
 		Experiences: repository.NewExperienceRepository(db),
+		Audit:    auditRecorder,
 	})
 	experienceHandler := handler.NewExperienceHandler(experienceService)
 	projectService := service.NewProjectService(service.ProjectDeps{
 		Projects: repository.NewProjectRepository(db),
+		Audit:    auditRecorder,
 	})
 	projectHandler := handler.NewProjectHandler(projectService)
 	educationService := service.NewEducationService(service.EducationDeps{
 		Educations: repository.NewEducationRepository(db),
+		Audit:    auditRecorder,
 	})
 	educationHandler := handler.NewEducationHandler(educationService)
 	extraService := service.NewExtraService(service.ExtraDeps{
 		Extras: repository.NewExtraRepository(db),
+		Audit:    auditRecorder,
 	})
 	extraHandler := handler.NewExtraHandler(extraService)
 	socialLinkService := service.NewSocialLinkService(service.SocialLinkDeps{
 		SocialLinks: repository.NewSocialLinkRepository(db),
+		Audit:       auditRecorder,
 	})
 	socialLinkHandler := handler.NewSocialLinkHandler(socialLinkService)
 
@@ -100,6 +110,25 @@ func New(ctx context.Context, cfg *config.Config, db *database.DB) (http.Handler
 	if err != nil {
 		return nil, err
 	}
+
+	analyticsRepository := repository.NewAnalyticsRepository(db)
+	resumeService := service.NewResumeService(service.ResumeDeps{
+		Profiles:   repository.NewProfileRepository(db),
+		Skills:     repository.NewSkillRepository(db),
+		Experience: repository.NewExperienceRepository(db),
+		Projects:   repository.NewProjectRepository(db),
+		Education:  repository.NewEducationRepository(db),
+		Extras:     repository.NewExtraRepository(db),
+		Analytics:  analyticsRepository,
+		HashSecret: cfg.AnalyticsHashSecret,
+	})
+	resumeHandler := handler.NewResumeHandler(resumeService)
+	analyticsHandler := handler.NewAnalyticsHandler(service.NewAnalyticsService(service.AnalyticsDeps{
+		Analytics: analyticsRepository,
+	}))
+	auditHandler := handler.NewAuditHandler(service.NewAuditQueryService(service.AuditQueryDeps{
+		Audit: auditRepository,
+	}))
 
 	r := chi.NewRouter()
 	r.Use(chimw.RequestID)
@@ -149,6 +178,7 @@ func New(ctx context.Context, cfg *config.Config, db *database.DB) (http.Handler
 		r.Get("/education", educationHandler.PublicEducations)
 		r.Get("/extras", extraHandler.PublicExtras)
 		r.Get("/social-links", socialLinkHandler.PublicSocialLinks)
+		r.Get("/resume/download", resumeHandler.Download)
 	})
 
 	r.Route("/api/admin", func(r chi.Router) {
@@ -193,6 +223,9 @@ func New(ctx context.Context, cfg *config.Config, db *database.DB) (http.Handler
 			r.Post("/presign", uploadHandler.PresignUpload)
 			r.Get("/download-url", uploadHandler.PresignDownload)
 		})
+
+		r.Get("/analytics/downloads", analyticsHandler.DownloadStats)
+		r.Get("/audit-log", auditHandler.Entries)
 	})
 
 	return r, nil
@@ -204,6 +237,6 @@ func writeJSON(w http.ResponseWriter, status int, payload any) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)
 	if err := json.NewEncoder(w).Encode(payload); err != nil {
-		log.Printf("⚠️  router: encode response failed: %v", err)
+		log.Printf("ÃƒÂ¢Ã…Â¡Ã‚Â ÃƒÂ¯Ã‚Â¸Ã‚Â  router: encode response failed: %v", err)
 	}
 }

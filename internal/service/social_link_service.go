@@ -16,16 +16,19 @@ import (
 // SocialLinkDeps wires the social link service to persistence.
 type SocialLinkDeps struct {
 	SocialLinks SocialLinkStore
+	// Audit records content changes for the admin trail. Optional.
+	Audit *Audit
 }
 
 // SocialLinkService owns the social link use-cases of the portfolio.
 type SocialLinkService struct {
 	socialLinks SocialLinkStore
+	audit       *Audit
 }
 
 // NewSocialLinkService builds the service.
 func NewSocialLinkService(deps SocialLinkDeps) *SocialLinkService {
-	return &SocialLinkService{socialLinks: deps.SocialLinks}
+	return &SocialLinkService{socialLinks: deps.SocialLinks, audit: deps.Audit}
 }
 
 // maxSocialURLLen caps the url column. The database keeps it as unbounded TEXT.
@@ -86,6 +89,11 @@ func (s *SocialLinkService) ReplaceSocialLinks(ctx context.Context, in SocialLin
 	if err != nil {
 		return nil, err
 	}
+
+	// The replaced set is loaded first so the audit trail can show what the admin
+	// overwrote; a replace is a single UPDATE as far as the trail is concerned.
+	previous, _ := s.socialLinks.ListSocialLinks(ctx)
+
 	if err := s.socialLinks.ReplaceSocialLinks(ctx, built); err != nil {
 		if errors.Is(err, models.ErrConflict) {
 			// The duplicate check in buildSocialLinks should catch this first;
@@ -95,11 +103,42 @@ func (s *SocialLinkService) ReplaceSocialLinks(ctx context.Context, in SocialLin
 		return nil, err
 	}
 
+	// Every platform present before and after is one UPDATE; a platform that only
+	// appears after is a CREATE, and one that disappears is a DELETE. That keeps
+	// the trail readable instead of logging one opaque "replace".
+	recordSocialLinkChanges(ctx, s.audit, previous, built)
+
 	views := make([]SocialLinkView, 0, len(built))
 	for i := range built {
 		views = append(views, socialLinkView(&built[i]))
 	}
 	return &SocialLinkReplaceView{SocialLinks: views}, nil
+}
+
+func recordSocialLinkChanges(ctx context.Context, audit *Audit, before, after []models.SocialLink) {
+	beforeByPlatform := make(map[string]models.SocialLink, len(before))
+	for i := range before {
+		beforeByPlatform[before[i].Platform] = before[i]
+	}
+	afterByPlatform := make(map[string]models.SocialLink, len(after))
+	for i := range after {
+		afterByPlatform[after[i].Platform] = after[i]
+	}
+
+	for platform, created := range afterByPlatform {
+		previous, existed := beforeByPlatform[platform]
+		switch {
+		case !existed:
+			audit.Record(ctx, auditEntitySocialLink, created.ID, AuditActionCreate, nil, created)
+		case previous.URL != created.URL || previous.DisplayOrder != created.DisplayOrder:
+			audit.Record(ctx, auditEntitySocialLink, created.ID, AuditActionUpdate, previous, created)
+		}
+	}
+	for platform, removed := range beforeByPlatform {
+		if _, kept := afterByPlatform[platform]; !kept {
+			audit.Record(ctx, auditEntitySocialLink, removed.ID, AuditActionDelete, removed, nil)
+		}
+	}
 }
 
 // maxSocialLinks caps the payload size. The enum only allows four platforms and

@@ -53,7 +53,7 @@ func (h *EducationHandler) CreateEducation(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	education, err := h.svc.CreateEducation(r.Context(), body.input())
+	education, err := h.svc.CreateEducation(adminContext(r), body.input())
 	if err != nil {
 		writeErr(w, r, err)
 		return
@@ -77,7 +77,7 @@ func (h *EducationHandler) UpdateEducation(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	education, err := h.svc.UpdateEducation(r.Context(), chi.URLParam(r, "id"), body.input())
+	education, err := h.svc.UpdateEducation(adminContext(r), chi.URLParam(r, "id"), body.input())
 	if err != nil {
 		writeErr(w, r, err)
 		return
@@ -87,7 +87,7 @@ func (h *EducationHandler) UpdateEducation(w http.ResponseWriter, r *http.Reques
 
 // DeleteEducation handles DELETE /api/admin/education/{id}.
 func (h *EducationHandler) DeleteEducation(w http.ResponseWriter, r *http.Request) {
-	if err := h.svc.DeleteEducation(r.Context(), chi.URLParam(r, "id")); err != nil {
+	if err := h.svc.DeleteEducation(adminContext(r), chi.URLParam(r, "id")); err != nil {
 		writeErr(w, r, err)
 		return
 	}

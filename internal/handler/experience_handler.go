@@ -57,7 +57,7 @@ func (h *ExperienceHandler) CreateExperience(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	experience, err := h.svc.CreateExperience(r.Context(), body.input())
+	experience, err := h.svc.CreateExperience(adminContext(r), body.input())
 	if err != nil {
 		writeErr(w, r, err)
 		return
@@ -85,7 +85,7 @@ func (h *ExperienceHandler) UpdateExperience(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	experience, err := h.svc.UpdateExperience(r.Context(), chi.URLParam(r, "id"), body.input())
+	experience, err := h.svc.UpdateExperience(adminContext(r), chi.URLParam(r, "id"), body.input())
 	if err != nil {
 		writeErr(w, r, err)
 		return
@@ -96,7 +96,7 @@ func (h *ExperienceHandler) UpdateExperience(w http.ResponseWriter, r *http.Requ
 // DeleteExperience handles DELETE /api/admin/experience/{id}. Its bullets are
 // deleted with it.
 func (h *ExperienceHandler) DeleteExperience(w http.ResponseWriter, r *http.Request) {
-	if err := h.svc.DeleteExperience(r.Context(), chi.URLParam(r, "id")); err != nil {
+	if err := h.svc.DeleteExperience(adminContext(r), chi.URLParam(r, "id")); err != nil {
 		writeErr(w, r, err)
 		return
 	}

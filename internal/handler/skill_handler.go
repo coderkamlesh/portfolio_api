@@ -50,7 +50,7 @@ func (h *SkillHandler) CreateCategory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	category, err := h.svc.CreateCategory(r.Context(), service.CategoryInput{
+	category, err := h.svc.CreateCategory(adminContext(r), service.CategoryInput{
 		Name:         body.Name,
 		DisplayOrder: body.DisplayOrder,
 	})
@@ -73,7 +73,7 @@ func (h *SkillHandler) UpdateCategory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	category, err := h.svc.UpdateCategory(r.Context(), chi.URLParam(r, "id"), service.CategoryInput{
+	category, err := h.svc.UpdateCategory(adminContext(r), chi.URLParam(r, "id"), service.CategoryInput{
 		Name:         body.Name,
 		DisplayOrder: body.DisplayOrder,
 	})
@@ -87,7 +87,7 @@ func (h *SkillHandler) UpdateCategory(w http.ResponseWriter, r *http.Request) {
 // DeleteCategory handles DELETE /api/admin/skill-categories/{id}. Its skills are
 // deleted with it.
 func (h *SkillHandler) DeleteCategory(w http.ResponseWriter, r *http.Request) {
-	if err := h.svc.DeleteCategory(r.Context(), chi.URLParam(r, "id")); err != nil {
+	if err := h.svc.DeleteCategory(adminContext(r), chi.URLParam(r, "id")); err != nil {
 		writeErr(w, r, err)
 		return
 	}
@@ -120,7 +120,7 @@ func (h *SkillHandler) CreateSkill(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	skill, err := h.svc.CreateSkill(r.Context(), service.SkillInput{
+	skill, err := h.svc.CreateSkill(adminContext(r), service.SkillInput{
 		CategoryID:   body.CategoryID,
 		Name:         body.Name,
 		IconSlug:     body.IconSlug,
@@ -145,7 +145,7 @@ func (h *SkillHandler) UpdateSkill(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	skill, err := h.svc.UpdateSkill(r.Context(), chi.URLParam(r, "id"), service.SkillInput{
+	skill, err := h.svc.UpdateSkill(adminContext(r), chi.URLParam(r, "id"), service.SkillInput{
 		CategoryID:   body.CategoryID,
 		Name:         body.Name,
 		IconSlug:     body.IconSlug,
@@ -160,7 +160,7 @@ func (h *SkillHandler) UpdateSkill(w http.ResponseWriter, r *http.Request) {
 
 // DeleteSkill handles DELETE /api/admin/skills/{id}.
 func (h *SkillHandler) DeleteSkill(w http.ResponseWriter, r *http.Request) {
-	if err := h.svc.DeleteSkill(r.Context(), chi.URLParam(r, "id")); err != nil {
+	if err := h.svc.DeleteSkill(adminContext(r), chi.URLParam(r, "id")); err != nil {
 		writeErr(w, r, err)
 		return
 	}

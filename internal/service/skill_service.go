@@ -17,12 +17,15 @@ import (
 type SkillDeps struct {
 	Skills SkillStore
 	Now    func() time.Time
+	// Audit records content changes for the admin trail. Optional.
+	Audit *Audit
 }
 
 // SkillService owns the skills and skill-category use-cases.
 type SkillService struct {
 	skills SkillStore
 	now    func() time.Time
+	audit  *Audit
 }
 
 // NewSkillService builds the service.
@@ -31,7 +34,7 @@ func NewSkillService(deps SkillDeps) *SkillService {
 	if now == nil {
 		now = func() time.Time { return time.Now().UTC() }
 	}
-	return &SkillService{skills: deps.Skills, now: now}
+	return &SkillService{skills: deps.Skills, now: now, audit: deps.Audit}
 }
 
 // Input limits. db_schema.sql keeps these columns as unbounded TEXT, so the caps
@@ -183,6 +186,7 @@ func (s *SkillService) CreateCategory(ctx context.Context, in CategoryInput) (*A
 	if err := s.skills.CreateCategory(ctx, category); err != nil {
 		return nil, mapCategoryWriteErr(err, name)
 	}
+	s.audit.Record(ctx, auditEntitySkillCategory, category.ID, AuditActionCreate, nil, category)
 	return adminSkillCategoryView(category), nil
 }
 
@@ -211,6 +215,9 @@ func (s *SkillService) UpdateCategory(ctx context.Context, id string, in Categor
 		}
 	}
 
+	// The row is mutated in place below, so the snapshot has to be taken first.
+	previous := *category
+
 	category.Name = name
 	category.DisplayOrder = displayOrderOrDefault(in.DisplayOrder, category.DisplayOrder)
 
@@ -220,16 +227,29 @@ func (s *SkillService) UpdateCategory(ctx context.Context, id string, in Categor
 		}
 		return nil, mapCategoryWriteErr(err, name)
 	}
+	s.audit.Record(ctx, auditEntitySkillCategory, category.ID, AuditActionUpdate, &previous, category)
 	return adminSkillCategoryView(category), nil
 }
 
-// DeleteCategory removes a category and every skill inside it.
+// DeleteCategory removes a category and every skill inside it. The children are
+// read before the delete so the audit trail keeps a snapshot of them too: without
+// that, deleting a category would erase its skills from the record entirely.
 func (s *SkillService) DeleteCategory(ctx context.Context, id string) error {
+	category, err := s.findCategory(ctx, id)
+	if err != nil {
+		return err
+	}
+	children, _ := s.skills.ListSkills(ctx, id)
+
 	if err := s.skills.DeleteCategory(ctx, id); err != nil {
 		if errors.Is(err, models.ErrNotFound) {
 			return errSkillCategoryNotFound()
 		}
 		return err
+	}
+	s.audit.Record(ctx, auditEntitySkillCategory, id, AuditActionDelete, category, nil)
+	for i := range children {
+		s.audit.Record(ctx, auditEntitySkill, children[i].ID, AuditActionDelete, &children[i], nil)
 	}
 	return nil
 }
@@ -282,6 +302,7 @@ func (s *SkillService) CreateSkill(ctx context.Context, in SkillInput) (*AdminSk
 	if err := s.skills.CreateSkill(ctx, skill); err != nil {
 		return nil, mapSkillWriteErr(err, name)
 	}
+	s.audit.Record(ctx, auditEntitySkill, skill.ID, AuditActionCreate, nil, skill)
 	return adminSkillView(skill), nil
 }
 
@@ -316,6 +337,9 @@ func (s *SkillService) UpdateSkill(ctx context.Context, id string, in SkillInput
 		return nil, err
 	}
 
+	// The row is mutated in place below, so the snapshot has to be taken first.
+	previous := *skill
+
 	skill.CategoryID = categoryID
 	skill.Name = name
 	skill.IconSlug = iconSlug
@@ -327,17 +351,23 @@ func (s *SkillService) UpdateSkill(ctx context.Context, id string, in SkillInput
 		}
 		return nil, mapSkillWriteErr(err, name)
 	}
+	s.audit.Record(ctx, auditEntitySkill, skill.ID, AuditActionUpdate, &previous, skill)
 	return adminSkillView(skill), nil
 }
 
 // DeleteSkill removes one skill.
 func (s *SkillService) DeleteSkill(ctx context.Context, id string) error {
+	existing, err := s.findSkill(ctx, id)
+	if err != nil {
+		return err
+	}
 	if err := s.skills.DeleteSkill(ctx, id); err != nil {
 		if errors.Is(err, models.ErrNotFound) {
 			return errSkillNotFound()
 		}
 		return err
 	}
+	s.audit.Record(ctx, auditEntitySkill, id, AuditActionDelete, existing, nil)
 	return nil
 }
 

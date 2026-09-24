@@ -39,7 +39,6 @@ var resumeContentTypes = map[string]string{
 // the validation rules can be tested without AWS.
 type UploadDeps struct {
 	Presigner      storage.Presigner
-	Bucket         string
 	UploadPrefix   string
 	PutPresignTTL  time.Duration
 	GetPresignTTL  time.Duration
@@ -52,7 +51,6 @@ type UploadDeps struct {
 // UploadService validates upload requests and mints the presigned URLs.
 type UploadService struct {
 	presigner      storage.Presigner
-	bucket         string
 	uploadPrefix   string
 	putPresignTTL  time.Duration
 	getPresignTTL  time.Duration
@@ -73,7 +71,6 @@ func NewUploadService(deps UploadDeps) *UploadService {
 	}
 	return &UploadService{
 		presigner:      deps.Presigner,
-		bucket:         deps.Bucket,
 		uploadPrefix:   prefix,
 		putPresignTTL:  deps.PutPresignTTL,
 		getPresignTTL:  deps.GetPresignTTL,

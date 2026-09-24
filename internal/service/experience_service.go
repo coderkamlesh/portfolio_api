@@ -18,12 +18,15 @@ import (
 type ExperienceDeps struct {
 	Experiences ExperienceStore
 	Now         func() time.Time
+	// Audit records content changes for the admin trail. Optional.
+	Audit *Audit
 }
 
 // ExperienceService owns the work-history use-cases of the portfolio.
 type ExperienceService struct {
 	experiences ExperienceStore
 	now         func() time.Time
+	audit       *Audit
 }
 
 // NewExperienceService builds the service.
@@ -32,7 +35,7 @@ func NewExperienceService(deps ExperienceDeps) *ExperienceService {
 	if now == nil {
 		now = func() time.Time { return time.Now().UTC() }
 	}
-	return &ExperienceService{experiences: deps.Experiences, now: now}
+	return &ExperienceService{experiences: deps.Experiences, now: now, audit: deps.Audit}
 }
 
 // Input limits. db_schema.sql keeps these columns as unbounded TEXT, so the caps
@@ -141,6 +144,7 @@ func (s *ExperienceService) CreateExperience(ctx context.Context, in ExperienceI
 	if err := s.experiences.SaveExperience(ctx, experience, bullets); err != nil {
 		return nil, err
 	}
+	s.audit.Record(ctx, auditEntityExperience, experience.ID, AuditActionCreate, nil, experience)
 	return adminExperienceView(experience, bullets), nil
 }
 
@@ -162,17 +166,26 @@ func (s *ExperienceService) UpdateExperience(ctx context.Context, id string, in 
 		}
 		return nil, err
 	}
+	s.audit.Record(ctx, auditEntityExperience, experience.ID, AuditActionUpdate, existing, experience)
 	return adminExperienceView(experience, bullets), nil
 }
 
 // DeleteExperience removes an entry and its bullets.
+//
+// The row is loaded before the delete so the audit trail can record what was
+// removed; without it a delete would leave the trail with no snapshot.
 func (s *ExperienceService) DeleteExperience(ctx context.Context, id string) error {
+	existing, err := s.findExperience(ctx, id)
+	if err != nil {
+		return err
+	}
 	if err := s.experiences.DeleteExperience(ctx, id); err != nil {
 		if errors.Is(err, models.ErrNotFound) {
 			return errExperienceNotFound()
 		}
 		return err
 	}
+	s.audit.Record(ctx, auditEntityExperience, id, AuditActionDelete, existing, nil)
 	return nil
 }
 

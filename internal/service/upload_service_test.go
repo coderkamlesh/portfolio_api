@@ -61,7 +61,6 @@ func (p *fakePresigner) PresignGetURL(_ context.Context, key string, ttl time.Du
 func newUploadTestService(presigner storage.Presigner) *UploadService {
 	return NewUploadService(UploadDeps{
 		Presigner:      presigner,
-		Bucket:         "portfoliov2-289210138514-ap-south-1-an",
 		UploadPrefix:   uploadTestPrefix,
 		PutPresignTTL:  15 * time.Minute,
 		GetPresignTTL:  time.Hour,
@@ -451,7 +450,6 @@ func TestPresignDownloadHonoursACustomPrefix(t *testing.T) {
 	presigner := &fakePresigner{}
 	svc := NewUploadService(UploadDeps{
 		Presigner:      presigner,
-		Bucket:         "portfoliov2-289210138514-ap-south-1-an",
 		UploadPrefix:   "media/assets",
 		PutPresignTTL:  15 * time.Minute,
 		GetPresignTTL:  time.Hour,
@@ -493,7 +491,6 @@ func TestPresignUploadDefaultsThePrefixWhenUnset(t *testing.T) {
 	presigner := &fakePresigner{}
 	svc := NewUploadService(UploadDeps{
 		Presigner:      presigner,
-		Bucket:         "portfoliov2-289210138514-ap-south-1-an",
 		UploadPrefix:   "",
 		PutPresignTTL:  15 * time.Minute,
 		GetPresignTTL:  time.Hour,
