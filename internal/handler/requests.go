@@ -256,3 +256,22 @@ func (b socialLinkReplaceRequest) input() service.SocialLinkReplaceInput {
 	}
 	return service.SocialLinkReplaceInput{Links: links}
 }
+
+// uploadPresignRequest asks for a URL to upload one file to. filename is only
+// checked for a matching extension; the API never uses it to build the key.
+type uploadPresignRequest struct {
+	Kind        string `json:"kind"`
+	Filename    string `json:"filename"`
+	ContentType string `json:"content_type"`
+	SizeBytes   int64  `json:"size_bytes"`
+}
+
+// input converts the decoded payload into the service input.
+func (b uploadPresignRequest) input() service.UploadRequest {
+	return service.UploadRequest{
+		Kind:        b.Kind,
+		Filename:    b.Filename,
+		ContentType: b.ContentType,
+		SizeBytes:   b.SizeBytes,
+	}
+}

@@ -17,9 +17,34 @@ import (
 	"github.com/coderkamlesh/portfolio_api/internal/repository"
 	"github.com/coderkamlesh/portfolio_api/internal/security"
 	"github.com/coderkamlesh/portfolio_api/internal/service"
+	"github.com/coderkamlesh/portfolio_api/internal/storage"
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
 )
+
+// newUploadHandler wires the upload service. A missing bucket is not a boot
+// error: the service is built without a presigner and answers 503, so every
+// other route keeps working on a machine with no AWS access.
+func newUploadHandler(ctx context.Context, cfg *config.Config) (*handler.UploadHandler, error) {
+	var presigner storage.Presigner
+	if cfg.UploadsEnabled() {
+		s3Presigner, err := storage.NewS3PresignerFromConfig(ctx, cfg)
+		if err != nil {
+			return nil, err
+		}
+		presigner = s3Presigner
+	}
+
+	return handler.NewUploadHandler(service.NewUploadService(service.UploadDeps{
+		Presigner:      presigner,
+		Bucket:         cfg.S3Bucket,
+		UploadPrefix:   cfg.S3UploadPrefix,
+		PutPresignTTL:  cfg.S3PutPresignTTL,
+		GetPresignTTL:  cfg.S3GetPresignTTL,
+		MaxImageBytes:  cfg.S3MaxImageBytes,
+		MaxResumeBytes: cfg.S3MaxResumeBytes,
+	})), nil
+}
 
 // New builds the complete HTTP handler.
 func New(ctx context.Context, cfg *config.Config, db *database.DB) (http.Handler, error) {
@@ -68,6 +93,13 @@ func New(ctx context.Context, cfg *config.Config, db *database.DB) (http.Handler
 		SocialLinks: repository.NewSocialLinkRepository(db),
 	})
 	socialLinkHandler := handler.NewSocialLinkHandler(socialLinkService)
+
+	// Uploads stay optional: without a bucket the API still boots and the
+	// upload routes answer 503, so a local clone needs no AWS access.
+	uploadHandler, err := newUploadHandler(ctx, cfg)
+	if err != nil {
+		return nil, err
+	}
 
 	r := chi.NewRouter()
 	r.Use(chimw.RequestID)
@@ -156,6 +188,11 @@ func New(ctx context.Context, cfg *config.Config, db *database.DB) (http.Handler
 		r.Delete("/extras/{id}", extraHandler.DeleteExtra)
 
 		r.Put("/social-links", socialLinkHandler.ReplaceSocialLinks)
+
+		r.Route("/uploads", func(r chi.Router) {
+			r.Post("/presign", uploadHandler.PresignUpload)
+			r.Get("/download-url", uploadHandler.PresignDownload)
+		})
 	})
 
 	return r, nil

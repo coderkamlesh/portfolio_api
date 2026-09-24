@@ -221,7 +221,7 @@ Sequence-wise implementation plan. Har module ka structure same:
 
 ---
 
-## Module 9: File Upload (S3) ⬜
+## Module 9: File Upload (S3) ✅
 
 **AWS:** S3 (ap-south-1), presigned URLs
 
@@ -359,8 +359,8 @@ Sequence-wise implementation plan. Har module ka structure same:
 6. Education         ✅
 7. Extras            ✅
 8. Social Links      ✅
-9. File Upload (S3)  ⬜ ← next
-10. Resume PDF       ⬜
+9. File Upload (S3)  ✅
+10. Resume PDF       ⬜ ← next
 11. Analytics        ⬜
 12. Audit Log        ⬜
 13. Frontend         ⬜

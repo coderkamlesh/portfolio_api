@@ -235,8 +235,27 @@ func errExtraValidation(message string) error {
 	return newErr(http.StatusBadRequest, "validation_failed", message)
 }
 
+// errSocialLinkValidation reports a malformed social link payload.
 func errSocialLinkValidation(message string) error {
 	return newErr(http.StatusBadRequest, "validation_failed", message)
+}
+
+// errUploadValidation reports an upload request that breaks a rule. The message
+// names the offending field so the admin panel can point at the right input.
+func errUploadValidation(message string) error {
+	return newErr(http.StatusBadRequest, "validation_failed", message)
+}
+
+// errUploadRequired reports a missing required field of an upload request.
+func errUploadRequired(field string) error {
+	return newErr(http.StatusBadRequest, "validation_failed", field+" is required.")
+}
+
+// errUploadsDisabled reports that no bucket is configured. The rest of the API
+// keeps working, so this is a 503 rather than a boot failure.
+func errUploadsDisabled() error {
+	return newErr(http.StatusServiceUnavailable, "uploads_disabled",
+		"File uploads are not configured on this deployment.")
 }
 
 // errSocialLinkRequired reports a missing required field of a social link.
