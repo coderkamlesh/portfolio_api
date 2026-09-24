@@ -89,25 +89,6 @@ func TestLoginUsesEmailCaseInsensitively(t *testing.T) {
 	}
 }
 
-func TestLoginSkipsOTPWhenNotRequired(t *testing.T) {
-	h := newHarness(t)
-	h.cfg.TwoFARequired = false
-
-	result := h.login(t)
-	if result.TwoFactorRequired || result.Challenge != nil {
-		t.Fatalf("expected no 2FA challenge, got %+v", result)
-	}
-	if result.Tokens == nil {
-		t.Fatal("expected a token pair when 2FA is off")
-	}
-	if h.mailer.count() != 0 {
-		t.Error("no OTP mail may be sent when 2FA is off")
-	}
-	if len(h.twoFA.rows) != 0 {
-		t.Errorf("2FA row must not be auto-provisioned when not required: %+v", h.twoFA.rows)
-	}
-}
-
 func TestLoginSurfacesMailFailuresAndBurnsTheChallenge(t *testing.T) {
 	h := newHarness(t)
 	h.mailer.err = errors.New("ses: message rejected")

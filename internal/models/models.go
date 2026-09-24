@@ -37,7 +37,6 @@ const (
 	AuditPasswordReset      = "PASSWORD_RESET"
 	AuditPasswordResetAsked = "PASSWORD_RESET_REQUESTED"
 	AuditTwoFAEnabled       = "TWO_FA_ENABLED"
-	AuditTwoFADisabled      = "TWO_FA_DISABLED"
 	AuditRateLimited        = "RATE_LIMITED"
 )
 

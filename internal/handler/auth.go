@@ -19,8 +19,7 @@ func NewAuthHandler(svc *service.AuthService) *AuthHandler {
 
 // Login handles POST /api/auth/login.
 //
-//	challenge returned -> email OTP sent, complete it with /api/auth/2fa/verify
-//	tokens returned    -> 2FA not required for this account
+//	200 response -> mandatory email OTP challenge; complete it with /api/auth/2fa/verify
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var body loginRequest
 	if err := decodeJSON(w, r, &body); err != nil {

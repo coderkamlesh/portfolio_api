@@ -41,11 +41,10 @@ const (
 	CodeRefreshTokenReused  = "refresh_token_reused"
 
 	CodeEmailDeliveryFailed = "email_delivery_failed"
-	CodeTwoFAEnforced       = "two_factor_enforced"
-	CodeTwoFANotConfigured  = "two_factor_not_configured"
 	CodeWeakPassword        = "weak_password"
 	CodeInvalidPassword     = "invalid_password"
 	CodeSamePassword        = "password_unchanged"
+	CodeProfileNotFound     = "profile_not_found"
 )
 
 func errInvalidCredentials() error {
@@ -105,15 +104,6 @@ func errEmailDeliveryFailed(cause error) error {
 		"Could not send the verification email. Please try again in a moment.")
 }
 
-func errTwoFAEnforced() error {
-	return newErr(http.StatusConflict, CodeTwoFAEnforced,
-		"Email OTP 2FA is enforced by the server configuration and cannot be disabled here.")
-}
-
-func errTwoFANotConfigured() error {
-	return newErr(http.StatusConflict, CodeTwoFANotConfigured, "Email OTP 2FA is not configured for this account.")
-}
-
 func errWeakPassword(reason string) error {
 	return newErr(http.StatusBadRequest, CodeWeakPassword, reason)
 }
@@ -124,4 +114,16 @@ func errInvalidPassword() error {
 
 func errSamePassword() error {
 	return newErr(http.StatusBadRequest, CodeSamePassword, "The new password must be different from the current one.")
+}
+
+func errProfileNotFound() error {
+	return newErr(http.StatusNotFound, CodeProfileNotFound, "The profile has not been configured yet.")
+}
+
+func errProfileValidation(field string) error {
+	return newErr(http.StatusBadRequest, "validation_failed", field+" is required.")
+}
+
+func errInvalidProfileEmail() error {
+	return newErr(http.StatusBadRequest, "validation_failed", "email must be a valid email address.")
 }

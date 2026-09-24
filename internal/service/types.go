@@ -1,6 +1,6 @@
 // Package service implements the admin authentication use-cases on top of the
 // repositories: password login, email-OTP second factor, session refresh,
-// password management and 2FA settings.
+// password management and mandatory email 2FA status.
 package service
 
 import (
@@ -61,7 +61,7 @@ type ResetPasswordInput struct {
 	NewPassword string
 }
 
-// PasswordConfirmationInput is used by the sensitive 2FA settings endpoints.
+// PasswordConfirmationInput is used by the sensitive 2FA confirmation endpoint.
 type PasswordConfirmationInput struct {
 	Password string
 }
@@ -99,8 +99,8 @@ type TokenPair struct {
 	RefreshExpiresAt time.Time `json:"refresh_expires_at"`
 }
 
-// LoginResult is the response of both /login and /2fa/verify: either a pending
-// challenge or a signed-in session.
+// LoginResult is the response of /login and /2fa/verify. The password step
+// always returns a pending challenge; OTP verification returns the session.
 type LoginResult struct {
 	TwoFactorRequired bool           `json:"two_factor_required"`
 	Challenge         *ChallengeView `json:"challenge,omitempty"`

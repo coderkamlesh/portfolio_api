@@ -138,27 +138,3 @@ func (h *AuthHandler) EnableEmail2FA(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, status)
 }
 
-// DisableEmail2FA handles POST /api/auth/2fa/email/disable.
-func (h *AuthHandler) DisableEmail2FA(w http.ResponseWriter, r *http.Request) {
-	adminID, ok := middleware.AdminIDFromContext(r.Context())
-	if !ok {
-		writeErr(w, r, unauthorizedContextError())
-		return
-	}
-
-	var body confirmPasswordRequest
-	if err := decodeJSON(w, r, &body); err != nil {
-		writeErr(w, r, err)
-		return
-	}
-	if body.Password == "" {
-		writeErr(w, r, requiredFieldError("password"))
-		return
-	}
-
-	if err := h.svc.DisableEmailOTP(r.Context(), adminID, service.PasswordConfirmationInput{Password: body.Password}); err != nil {
-		writeErr(w, r, err)
-		return
-	}
-	writeNoContent(w)
-}

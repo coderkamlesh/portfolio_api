@@ -40,6 +40,10 @@ func New(ctx context.Context, cfg *config.Config, db *database.DB) (http.Handler
 		Cfg:     cfg,
 	})
 	authHandler := handler.NewAuthHandler(authService)
+	profileService := service.NewProfileService(service.ProfileDeps{
+		Profiles: repository.NewProfileRepository(db),
+	})
+	profileHandler := handler.NewProfileHandler(profileService)
 
 	r := chi.NewRouter()
 	r.Use(chimw.RequestID)
@@ -76,8 +80,19 @@ func New(ctx context.Context, cfg *config.Config, db *database.DB) (http.Handler
 			r.Post("/password/change", authHandler.ChangePassword)
 			r.Get("/2fa", authHandler.TwoFAStatus)
 			r.Post("/2fa/email/enable", authHandler.EnableEmail2FA)
-			r.Post("/2fa/email/disable", authHandler.DisableEmail2FA)
 		})
+	})
+
+	r.Route("/api/public", func(r chi.Router) {
+		r.Use(middleware.NoStore)
+		r.Get("/profile", profileHandler.PublicProfile)
+	})
+
+	r.Route("/api/admin", func(r chi.Router) {
+		r.Use(middleware.RequireAuth(tokens))
+		r.Use(middleware.NoStore)
+		r.Get("/profile", profileHandler.AdminProfile)
+		r.Put("/profile", profileHandler.UpdateProfile)
 	})
 
 	return r, nil

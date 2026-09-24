@@ -66,7 +66,6 @@ func newHarness(t *testing.T) *harness {
 			JWTIssuer:         "portfolio-api",
 			AccessTokenTTL:    15 * time.Minute,
 			RefreshTokenTTL:   30 * 24 * time.Hour,
-			TwoFARequired:     true,
 			OTPLength:         6,
 			OTPTTL:            10 * time.Minute,
 			OTPMaxAttempts:    3,

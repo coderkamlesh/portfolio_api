@@ -36,7 +36,6 @@ type Config struct {
 	RefreshTokenTTL time.Duration
 
 	// ---- Admin auth policy ----
-	TwoFARequired     bool
 	OTPLength         int
 	OTPTTL            time.Duration
 	OTPMaxAttempts    int
@@ -81,7 +80,6 @@ func Load() *Config {
 		AccessTokenTTL:  getEnvMinutes("JWT_ACCESS_TTL_MINUTES", 15),
 		RefreshTokenTTL: getEnvDays("JWT_REFRESH_TTL_DAYS", 30),
 
-		TwoFARequired:     getEnvBool("AUTH_2FA_REQUIRED", true),
 		OTPLength:         getEnvInt("AUTH_OTP_LENGTH", 6),
 		OTPTTL:            getEnvMinutes("AUTH_OTP_TTL_MINUTES", 10),
 		OTPMaxAttempts:    getEnvInt("AUTH_OTP_MAX_ATTEMPTS", 5),
@@ -163,17 +161,6 @@ func getEnvInt(key string, fallback int) int {
 			log.Fatalf("%s must be an integer (got %q)", key, v)
 		}
 		return n
-	}
-	return fallback
-}
-
-func getEnvBool(key string, fallback bool) bool {
-	if v, ok := os.LookupEnv(key); ok && strings.TrimSpace(v) != "" {
-		b, err := strconv.ParseBool(strings.TrimSpace(v))
-		if err != nil {
-			log.Fatalf("%s must be a boolean (got %q)", key, v)
-		}
-		return b
 	}
 	return fallback
 }

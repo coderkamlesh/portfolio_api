@@ -1,6 +1,8 @@
-# Admin Authentication APIs
+# Auth Module — API Reference
 
-This document is the frontend contract for the complete admin authentication feature: password login, email OTP, token rotation, session inspection, logout, password recovery/change, and email two-factor settings.
+This document is the frontend contract for the complete admin authentication feature: password login, mandatory email OTP, token rotation, session inspection, logout, password recovery/change, and email two-factor status.
+For frontend state management, token handling, and integration flow guidance, see [Auth Module — Frontend Guide](./auth.md).
+
 
 ## API surface
 
@@ -17,7 +19,6 @@ This document is the frontend contract for the complete admin authentication fea
 | `POST` | `/api/auth/password/change` | Bearer access token | `200` |
 | `GET` | `/api/auth/2fa` | Bearer access token | `200` |
 | `POST` | `/api/auth/2fa/email/enable` | Bearer access token | `200` |
-| `POST` | `/api/auth/2fa/email/disable` | Bearer access token | `204` |
 
 ## Shared conventions
 
@@ -32,7 +33,7 @@ This document is the frontend contract for the complete admin authentication fea
 
 ## Login
 
-The login endpoint accepts an admin username or email address and password. It is public, but successful password authentication may require an email OTP before an API session is issued.
+The login endpoint accepts an admin username or email address and password. It is public, but successful password authentication always requires an email OTP before an API session is issued.
 
 ## Endpoint
 
@@ -75,16 +76,18 @@ curl -i -X POST "http://localhost:8080/api/auth/login" \
 
 ## Login flow
 
-After the account and password are verified, the response depends on the effective email two-factor policy:
+After the account and password are verified, the API always requires mandatory email OTP:
 
-1. **Two-factor required:** The API creates an email OTP challenge, sends the OTP to the admin email, and returns `two_factor_required: true`. No access or refresh token is returned. Submit the OTP to `POST /api/auth/2fa/verify`.
-2. **Two-factor not required:** The API immediately creates a session and returns the admin plus access and refresh tokens.
+1. The API creates an email OTP challenge and sends the OTP to the admin email.
+2. The response contains `two_factor_required: true` and the challenge.
+3. No access or refresh token is returned by the password step.
+4. Submit the OTP to `POST /api/auth/2fa/verify`.
 
-The server policy `AUTH_2FA_REQUIRED` defaults to `true`. When it is `false`, 2FA still applies when enabled for the individual admin.
+There is intentionally no server or admin setting that can disable the login second factor.
 
 ## Successful responses
 
-### 2FA required
+### Login response (mandatory 2FA)
 
 ```http
 HTTP/1.1 200 OK
@@ -155,7 +158,7 @@ POST /api/auth/2fa/verify
 | `challenge_id` | string | Yes | `challenge.id` returned by login. |
 | `otp` | string | Yes | Code from the login email. The configured OTP length is returned as `challenge.code_length`. |
 
-A successful `200 OK` response is the same authenticated session shape returned by a password-only login:
+A successful `200 OK` response returns the authenticated session:
 
 ```json
 {
@@ -469,9 +472,9 @@ A successful `200 OK` returns a new token pair. All existing sessions are revoke
 
 Use `invalid_password` (`401`) for a wrong current password, `password_unchanged` (`400`) when the new value equals the current value, and `weak_password` (`400`) for a policy violation.
 
-## Email two-factor settings
+## Email two-factor status
 
-These endpoints require `Authorization: Bearer <access_token>`.
+Email OTP is mandatory and cannot be disabled. These endpoints require `Authorization: Bearer <access_token>`.
 
 ### Get 2FA status
 
@@ -492,13 +495,13 @@ A successful `200 OK` response:
 }
 ```
 
-- `required` reflects the global `AUTH_2FA_REQUIRED` server policy.
-- `enabled` is the effective state for this admin: server-required or admin-enabled means `true`.
+- `required` is always `true`; email OTP is mandatory for login.
+- `enabled` is always `true`. A missing row is auto-provisioned during the next login, and a stale disabled row is re-enabled.
 - `method` currently has the value `EMAIL_OTP`.
 - `email` is always masked.
 - Timestamp fields can be omitted when no stored configuration exists.
 
-### Enable email 2FA
+### Confirm/repair email 2FA
 
 ```http
 POST /api/auth/2fa/email/enable
@@ -513,24 +516,7 @@ Content-Type: application/json
 }
 ```
 
-A successful `200 OK` returns the same `TwoFAStatus` shape as `GET /api/auth/2fa`, with fresh timestamps. Enabling is idempotent at the effective-policy level. A wrong password returns `401 invalid_password`.
-
-### Disable email 2FA
-
-```http
-POST /api/auth/2fa/email/disable
-Content-Type: application/json
-```
-
-**Request:**
-
-```json
-{
-  "password": "current-admin-password"
-}
-```
-
-A successful `204 No Content` has no body. The endpoint returns `409 two_factor_enforced` when `AUTH_2FA_REQUIRED=true`; in that configuration, 2FA cannot be disabled from the panel. It returns `409 two_factor_not_configured` when no setting exists and `401 invalid_password` when re-confirmation fails.
+A successful `200 OK` returns the same `TwoFAStatus` shape as `GET /api/auth/2fa`, with fresh timestamps. The operation is idempotent and can repair a stale disabled database row. A wrong password returns `401 invalid_password`.
 
 ## Error response
 
@@ -566,8 +552,6 @@ The `message` is for display. The frontend must branch on `error.code`.
 | `401` | `missing_token` | Protected request has no valid bearer header. Refresh or log in. |
 | `401` | `invalid_token` | Access token is invalid or expired. Refresh once, then retry once. |
 | `403` | `account_disabled` | Admin account is inactive. Clear session and do not retry automatically. |
-| `409` | `two_factor_enforced` | Server policy prevents disabling 2FA. |
-| `409` | `two_factor_not_configured` | Email 2FA has no stored setting to disable. |
 | `410` | `challenge_expired` | OTP challenge expired. Request/resend a code and restart verification. |
 | `410` | `challenge_already_used` | Challenge was consumed or invalidated. Restart the flow. |
 | `429` | `too_many_attempts` | Login limiter is active. Honor `Retry-After`. |
@@ -608,7 +592,6 @@ The examples use the defaults in `.env.example`. The frontend should consume ret
 | Variable | Default | Effect |
 |---|---:|---|
 | `AUTH_ALLOWED_ORIGINS` | Localhost 5173/3000 | Comma-separated frontend origins allowed by CORS. |
-| `AUTH_2FA_REQUIRED` | `true` | Requires email OTP for every successful password login and prevents panel disable. |
 | `AUTH_OTP_LENGTH` | `6` | OTP digits returned as `challenge.code_length`; valid range 4–10. |
 | `AUTH_OTP_TTL_MINUTES` | `10` | OTP `expires_in` and `expires_at`. |
 | `AUTH_OTP_MAX_ATTEMPTS` | `5` | Incorrect OTP attempts allowed per challenge. |
@@ -631,7 +614,8 @@ Use an explicit auth state rather than several unrelated booleans:
 ```text
 signed_out
   -> authenticating
-  -> login_otp | authenticated
+  -> login_otp
+  -> authenticated
 
 signed_out
   -> reset_requested
@@ -643,7 +627,7 @@ authenticated
   -> authenticated | signed_out
 ```
 
-Store an `AdminView` only after login, OTP verification, refresh, password reset, or password change returns a token pair. Store each OTP challenge in component/session state with its purpose; never reuse a `LOGIN_2FA` challenge ID for `PASSWORD_RESET` or vice versa.
+Store an `AdminView` only after OTP verification, refresh, password reset, or password change returns a token pair. Store each OTP challenge in component/session state with its purpose; never reuse a `LOGIN_2FA` challenge ID for `PASSWORD_RESET` or vice versa.
 
 ### Token storage
 
@@ -663,7 +647,7 @@ Store an `AdminView` only after login, OTP verification, refresh, password reset
 
 ### End-to-end transitions
 
-1. **Login:** `POST /login`; if 2FA is required, retain `challenge` and move to `login_otp`; otherwise save `tokens` and `admin`.
+1. **Login:** `POST /login`; always retain the returned `challenge` and move to `login_otp`.
 2. **Login verification:** `POST /2fa/verify`; save returned tokens/admin. On a terminal challenge error, clear the challenge and restart login.
 3. **Login resend:** call `/2fa/resend` only after `resend_after`; replace the challenge and countdown.
 4. **Session refresh:** call `/refresh` once; atomically replace the token pair, then resolve queued protected requests.
@@ -672,11 +656,11 @@ Store an `AdminView` only after login, OTP verification, refresh, password reset
 7. **Forgot password:** call `/password/forgot`; retain the returned reset challenge without revealing whether the account exists.
 8. **Reset password:** call `/password/reset`; save the returned fresh tokens/admin and clear reset state.
 9. **Change password:** call `/password/change`; atomically replace tokens because all prior sessions were revoked.
-10. **2FA settings:** load `/2fa`; enable/disable with current-password confirmation and consume the returned state/status.
+10. **2FA status:** load `/2fa`; optionally call `/2fa/email/enable` with current-password confirmation to confirm/repair the mandatory setting.
 
 ## Implementation checklist
 
-- Parse non-`204` success responses as JSON; do not attempt to parse logout or 2FA-disable bodies.
+- Parse non-`204` success responses as JSON; do not attempt to parse the logout body.
 - Read `Retry-After` when present and keep resend/buttons disabled for that many seconds.
 - Run expiry countdowns from server timestamps/seconds and re-check state on the server.
 - Clear OTP and password inputs after terminal success and on component unmount.

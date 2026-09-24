@@ -49,3 +49,9 @@ type RefreshStore interface {
 type AuditStore interface {
 	Insert(ctx context.Context, e *models.AuditEntry) error
 }
+
+// ProfileStore is the persistence contract for the singleton profile_details row.
+type ProfileStore interface {
+	Find(ctx context.Context) (*models.Profile, error)
+	Upsert(ctx context.Context, profile *models.Profile) error
+}

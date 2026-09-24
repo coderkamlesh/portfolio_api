@@ -48,7 +48,26 @@ type resetPasswordRequest struct {
 	NewPassword string `json:"new_password"`
 }
 
-// confirmPasswordRequest is the body of the 2FA settings endpoints.
+// confirmPasswordRequest is the body of the 2FA confirmation endpoint.
 type confirmPasswordRequest struct {
 	Password string `json:"password"`
+}
+
+// updateProfileRequest is the full replacement body of PUT /api/admin/profile.
+type updateProfileRequest struct {
+	FullName        string `json:"full_name"`
+	Title           string `json:"title"`
+	Tagline         string `json:"tagline"`
+	Summary         string `json:"summary"`
+	Email           string `json:"email"`
+	Phone           string `json:"phone"`
+	Location        string `json:"location"`
+	AvatarURL       string `json:"avatar_url"`
+	LinkedinURL     string `json:"linkedin_url"`
+	GithubURL       string `json:"github_url"`
+	PortfolioURL    string `json:"portfolio_url"`
+	TwitterURL      string `json:"twitter_url"`
+	ResumeFileURL   string `json:"resume_file_url"`
+	CareerGapNote   string `json:"career_gap_note"`
+	ExperienceLevel string `json:"experience_level"`
 }

@@ -62,9 +62,9 @@ func NewAuthService(deps Deps) *AuthService {
 	}
 }
 
-// Login validates the password. When email-OTP 2FA applies it mails a code and
-// returns a challenge; otherwise it signs the admin in directly (only possible
-// when AUTH_2FA_REQUIRED=false and the method was disabled).
+// Login validates the password, ensures mandatory email OTP is active, mails a
+// code, and returns the challenge that must be completed before a session is
+// issued.
 func (s *AuthService) Login(ctx context.Context, in LoginInput, meta RequestMeta) (*LoginResult, error) {
 	identifier := strings.TrimSpace(in.Identifier)
 	if identifier == "" || in.Password == "" {
@@ -116,21 +116,8 @@ func (s *AuthService) Login(ctx context.Context, in LoginInput, meta RequestMeta
 		}
 	}
 
-	_, required, err := s.emailTwoFAConfig(ctx, admin)
-	if err != nil {
+	if _, err := s.emailTwoFAConfig(ctx, admin); err != nil {
 		return nil, err
-	}
-
-	if !required {
-		tokens, err := s.issueSession(ctx, admin, meta)
-		if err != nil {
-			return nil, err
-		}
-		if err := s.admins.TouchLastLogin(ctx, admin.ID, s.now()); err != nil {
-			log.Printf("⚠️  auth: could not record last login for admin %s: %v", admin.ID, err)
-		}
-		s.auditEvent(ctx, admin.ID, models.AuditLoginSucceeded, "password_only", nil)
-		return &LoginResult{Tokens: tokens, Admin: adminView(admin)}, nil
 	}
 
 	challenge, err := s.issueOTP(ctx, admin, models.OTPPurposeLogin2FA, meta)
