@@ -149,7 +149,7 @@ Sequence-wise implementation plan. Har module ka structure same:
 
 ---
 
-## Module 6: Education ⬜
+## Module 6: Education ✅
 
 **Table:** `educations`
 
@@ -169,6 +169,8 @@ Sequence-wise implementation plan. Har module ka structure same:
 - `internal/repository/education_repo.go`
 - `internal/service/education_service.go`
 - `internal/handler/education_handler.go`
+
+**Status:** ✅ Complete
 
 ---
 
@@ -350,8 +352,8 @@ Sequence-wise implementation plan. Har module ka structure same:
 3. Skills            ✅
 4. Experience        ✅
 5. Projects          ✅
-6. Education         ⬜ ← next
-7. Extras            ⬜
+6. Education         ✅
+7. Extras            ⬜ ← next
 8. Social Links      ⬜
 9. File Upload (S3)  ⬜
 10. Resume PDF       ⬜

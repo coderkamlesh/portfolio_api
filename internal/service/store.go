@@ -103,3 +103,12 @@ type ProjectStore interface {
 	// transaction.
 	DeleteProject(ctx context.Context, id string) error
 }
+
+// EducationStore is the persistence contract for educations.
+type EducationStore interface {
+	ListEducations(ctx context.Context) ([]models.Education, error)
+	FindEducationByID(ctx context.Context, id string) (*models.Education, error)
+	CreateEducation(ctx context.Context, education *models.Education) error
+	UpdateEducation(ctx context.Context, education *models.Education) error
+	DeleteEducation(ctx context.Context, id string) error
+}

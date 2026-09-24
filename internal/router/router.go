@@ -56,6 +56,10 @@ func New(ctx context.Context, cfg *config.Config, db *database.DB) (http.Handler
 		Projects: repository.NewProjectRepository(db),
 	})
 	projectHandler := handler.NewProjectHandler(projectService)
+	educationService := service.NewEducationService(service.EducationDeps{
+		Educations: repository.NewEducationRepository(db),
+	})
+	educationHandler := handler.NewEducationHandler(educationService)
 
 	r := chi.NewRouter()
 	r.Use(chimw.RequestID)
@@ -102,6 +106,7 @@ func New(ctx context.Context, cfg *config.Config, db *database.DB) (http.Handler
 		r.Get("/experience", experienceHandler.PublicExperiences)
 		r.Get("/projects", projectHandler.PublicProjects)
 		r.Get("/projects/{id}", projectHandler.PublicProject)
+		r.Get("/education", educationHandler.PublicEducations)
 	})
 
 	r.Route("/api/admin", func(r chi.Router) {
@@ -129,6 +134,11 @@ func New(ctx context.Context, cfg *config.Config, db *database.DB) (http.Handler
 		r.Post("/projects", projectHandler.CreateProject)
 		r.Put("/projects/{id}", projectHandler.UpdateProject)
 		r.Delete("/projects/{id}", projectHandler.DeleteProject)
+
+		r.Get("/education", educationHandler.ListEducations)
+		r.Post("/education", educationHandler.CreateEducation)
+		r.Put("/education/{id}", educationHandler.UpdateEducation)
+		r.Delete("/education/{id}", educationHandler.DeleteEducation)
 	})
 
 	return r, nil

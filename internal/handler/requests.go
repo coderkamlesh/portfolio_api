@@ -171,3 +171,36 @@ func (b projectRequest) input() service.ProjectInput {
 		DisplayOrder: b.DisplayOrder,
 	}
 }
+
+// educationRequest is the body of POST /api/admin/education and
+// PUT /api/admin/education/{id}. An omitted end_year means the degree is still
+// in progress; an omitted display_order keeps the stored order on update and
+// defaults to 0 on create.
+type educationRequest struct {
+	Institution  string   `json:"institution"`
+	Degree       string   `json:"degree"`
+	FieldOfStudy string   `json:"field_of_study"`
+	StartYear    int      `json:"start_year"`
+	EndYear      *int     `json:"end_year"`
+	Grade        string   `json:"grade"`
+	GPA          string   `json:"gpa"`
+	Coursework   []string `json:"coursework"`
+	Honors       string   `json:"honors"`
+	DisplayOrder *int     `json:"display_order"`
+}
+
+// input converts the decoded payload into the service input.
+func (b educationRequest) input() service.EducationInput {
+	return service.EducationInput{
+		Institution:  b.Institution,
+		Degree:       b.Degree,
+		FieldOfStudy: b.FieldOfStudy,
+		StartYear:    b.StartYear,
+		EndYear:      b.EndYear,
+		Grade:        b.Grade,
+		GPA:          b.GPA,
+		Coursework:   b.Coursework,
+		Honors:       b.Honors,
+		DisplayOrder: b.DisplayOrder,
+	}
+}

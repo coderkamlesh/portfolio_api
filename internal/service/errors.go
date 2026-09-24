@@ -52,6 +52,7 @@ const (
 	CodeSkillExists           = "skill_exists"
 	CodeExperienceNotFound    = "experience_not_found"
 	CodeProjectNotFound       = "project_not_found"
+	CodeEducationNotFound     = "education_not_found"
 )
 
 func errInvalidCredentials() error {
@@ -199,5 +200,20 @@ func errProjectRequired(field string) error {
 // errProjectValidation reports a malformed project payload with a message that
 // names the offending field.
 func errProjectValidation(message string) error {
+	return newErr(http.StatusBadRequest, "validation_failed", message)
+}
+
+func errEducationNotFound() error {
+	return newErr(http.StatusNotFound, CodeEducationNotFound, "This education entry does not exist.")
+}
+
+// errEducationRequired reports a missing required field of an education payload.
+func errEducationRequired(field string) error {
+	return newErr(http.StatusBadRequest, "validation_failed", field+" is required.")
+}
+
+// errEducationValidation reports a malformed education payload with a message
+// that names the offending field.
+func errEducationValidation(message string) error {
 	return newErr(http.StatusBadRequest, "validation_failed", message)
 }
