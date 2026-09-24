@@ -1,5 +1,9 @@
 package handler
 
+import (
+	"github.com/coderkamlesh/portfolio_api/internal/service"
+)
+
 // loginRequest is the body of POST /api/auth/login.
 type loginRequest struct {
 	// Identifier accepts either the username or the email address.
@@ -88,4 +92,39 @@ type skillRequest struct {
 	Name         string `json:"name"`
 	IconSlug     string `json:"icon_slug"`
 	DisplayOrder *int   `json:"display_order"`
+}
+
+// experienceRequest is the body of POST /api/admin/experience and
+// PUT /api/admin/experience/{id}. Bullets are replaced wholesale, in payload
+// order. An omitted display_order keeps the stored order on update and defaults
+// to 0 on create.
+type experienceRequest struct {
+	CompanyName    string   `json:"company_name"`
+	CompanyLogoURL string   `json:"company_logo_url"`
+	Role           string   `json:"role"`
+	EmploymentType string   `json:"employment_type"`
+	Location       string   `json:"location"`
+	StartDate      string   `json:"start_date"`
+	EndDate        string   `json:"end_date"`
+	IsCurrent      bool     `json:"is_current"`
+	Technologies   []string `json:"technologies"`
+	Bullets        []string `json:"bullets"`
+	DisplayOrder   *int     `json:"display_order"`
+}
+
+// input converts the decoded payload into the service input.
+func (b experienceRequest) input() service.ExperienceInput {
+	return service.ExperienceInput{
+		CompanyName:    b.CompanyName,
+		CompanyLogoURL: b.CompanyLogoURL,
+		Role:           b.Role,
+		EmploymentType: b.EmploymentType,
+		Location:       b.Location,
+		StartDate:      b.StartDate,
+		EndDate:        b.EndDate,
+		IsCurrent:      b.IsCurrent,
+		Technologies:   b.Technologies,
+		Bullets:        b.Bullets,
+		DisplayOrder:   b.DisplayOrder,
+	}
 }

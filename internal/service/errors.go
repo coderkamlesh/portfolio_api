@@ -50,6 +50,7 @@ const (
 	CodeSkillNotFound         = "skill_not_found"
 	CodeSkillCategoryExists   = "skill_category_exists"
 	CodeSkillExists           = "skill_exists"
+	CodeExperienceNotFound    = "experience_not_found"
 )
 
 func errInvalidCredentials() error {
@@ -167,4 +168,20 @@ func errSkillValidationControlChars(field string) error {
 
 func errSkillValidationDisplayOrder() error {
 	return newErr(http.StatusBadRequest, "validation_failed", "display_order must not be negative.")
+}
+
+func errExperienceNotFound() error {
+	return newErr(http.StatusNotFound, CodeExperienceNotFound, "This experience entry does not exist.")
+}
+
+// errExperienceRequired reports a missing required field of an experience
+// payload.
+func errExperienceRequired(field string) error {
+	return newErr(http.StatusBadRequest, "validation_failed", field+" is required.")
+}
+
+// errExperienceValidation reports a malformed experience payload with a message
+// that names the offending field.
+func errExperienceValidation(message string) error {
+	return newErr(http.StatusBadRequest, "validation_failed", message)
 }

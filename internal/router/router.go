@@ -48,6 +48,10 @@ func New(ctx context.Context, cfg *config.Config, db *database.DB) (http.Handler
 		Skills: repository.NewSkillRepository(db),
 	})
 	skillHandler := handler.NewSkillHandler(skillService)
+	experienceService := service.NewExperienceService(service.ExperienceDeps{
+		Experiences: repository.NewExperienceRepository(db),
+	})
+	experienceHandler := handler.NewExperienceHandler(experienceService)
 
 	r := chi.NewRouter()
 	r.Use(chimw.RequestID)
@@ -91,6 +95,7 @@ func New(ctx context.Context, cfg *config.Config, db *database.DB) (http.Handler
 		r.Use(middleware.NoStore)
 		r.Get("/profile", profileHandler.PublicProfile)
 		r.Get("/skills", skillHandler.PublicSkills)
+		r.Get("/experience", experienceHandler.PublicExperiences)
 	})
 
 	r.Route("/api/admin", func(r chi.Router) {
@@ -108,6 +113,11 @@ func New(ctx context.Context, cfg *config.Config, db *database.DB) (http.Handler
 		r.Post("/skills", skillHandler.CreateSkill)
 		r.Put("/skills/{id}", skillHandler.UpdateSkill)
 		r.Delete("/skills/{id}", skillHandler.DeleteSkill)
+
+		r.Get("/experience", experienceHandler.ListExperiences)
+		r.Post("/experience", experienceHandler.CreateExperience)
+		r.Put("/experience/{id}", experienceHandler.UpdateExperience)
+		r.Delete("/experience/{id}", experienceHandler.DeleteExperience)
 	})
 
 	return r, nil

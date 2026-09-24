@@ -74,3 +74,18 @@ type SkillStore interface {
 	UpdateSkill(ctx context.Context, skill *models.Skill) error
 	DeleteSkill(ctx context.Context, id string) error
 }
+
+// ExperienceStore is the persistence contract for work_experiences and
+// experience_bullets.
+type ExperienceStore interface {
+	ListExperiences(ctx context.Context) ([]models.WorkExperience, error)
+	FindExperienceByID(ctx context.Context, id string) (*models.WorkExperience, error)
+	// ListBullets returns the bullets of one experience, or the bullets of every
+	// experience when experienceID is empty.
+	ListBullets(ctx context.Context, experienceID string) ([]models.ExperienceBullet, error)
+	// SaveExperience writes the row and replaces its bullets in one transaction.
+	SaveExperience(ctx context.Context, experience *models.WorkExperience, bullets []models.ExperienceBullet) error
+	// DeleteExperience removes the row together with its bullets in one
+	// transaction.
+	DeleteExperience(ctx context.Context, id string) error
+}
