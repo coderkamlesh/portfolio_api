@@ -53,6 +53,7 @@ const (
 	CodeExperienceNotFound    = "experience_not_found"
 	CodeProjectNotFound       = "project_not_found"
 	CodeEducationNotFound     = "education_not_found"
+	CodeExtraNotFound         = "extra_not_found"
 )
 
 func errInvalidCredentials() error {
@@ -215,5 +216,20 @@ func errEducationRequired(field string) error {
 // errEducationValidation reports a malformed education payload with a message
 // that names the offending field.
 func errEducationValidation(message string) error {
+	return newErr(http.StatusBadRequest, "validation_failed", message)
+}
+
+func errExtraNotFound() error {
+	return newErr(http.StatusNotFound, CodeExtraNotFound, "This extra entry does not exist.")
+}
+
+// errExtraRequired reports a missing required field of an extra payload.
+func errExtraRequired(field string) error {
+	return newErr(http.StatusBadRequest, "validation_failed", field+" is required.")
+}
+
+// errExtraValidation reports a malformed extra payload with a message that names
+// the offending field.
+func errExtraValidation(message string) error {
 	return newErr(http.StatusBadRequest, "validation_failed", message)
 }

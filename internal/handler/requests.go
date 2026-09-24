@@ -204,3 +204,29 @@ func (b educationRequest) input() service.EducationInput {
 		DisplayOrder: b.DisplayOrder,
 	}
 }
+
+// extraRequest is the body of POST /api/admin/extras and
+// PUT /api/admin/extras/{id}. An omitted display_order keeps the stored order on
+// update and defaults to 0 on create.
+type extraRequest struct {
+	Category      string `json:"category"`
+	Title         string `json:"title"`
+	Issuer        string `json:"issuer"`
+	IssuedDate    string `json:"issued_date"`
+	CredentialURL string `json:"credential_url"`
+	Description   string `json:"description"`
+	DisplayOrder  *int   `json:"display_order"`
+}
+
+// input converts the decoded payload into the service input.
+func (b extraRequest) input() service.ExtraInput {
+	return service.ExtraInput{
+		Category:      b.Category,
+		Title:         b.Title,
+		Issuer:        b.Issuer,
+		IssuedDate:    b.IssuedDate,
+		CredentialURL: b.CredentialURL,
+		Description:   b.Description,
+		DisplayOrder:  b.DisplayOrder,
+	}
+}

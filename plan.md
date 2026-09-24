@@ -174,7 +174,7 @@ Sequence-wise implementation plan. Har module ka structure same:
 
 ---
 
-## Module 7: Extras ⬜
+## Module 7: Extras ✅
 
 **Table:** `extras`
 
@@ -194,6 +194,8 @@ Sequence-wise implementation plan. Har module ka structure same:
 - `internal/repository/extra_repo.go`
 - `internal/service/extra_service.go`
 - `internal/handler/extra_handler.go`
+
+**Status:** ✅ Complete
 
 ---
 
@@ -353,8 +355,8 @@ Sequence-wise implementation plan. Har module ka structure same:
 4. Experience        ✅
 5. Projects          ✅
 6. Education         ✅
-7. Extras            ⬜ ← next
-8. Social Links      ⬜
+7. Extras            ✅
+8. Social Links      ⬜ ← next
 9. File Upload (S3)  ⬜
 10. Resume PDF       ⬜
 11. Analytics        ⬜

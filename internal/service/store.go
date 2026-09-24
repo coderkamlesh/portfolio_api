@@ -112,3 +112,12 @@ type EducationStore interface {
 	UpdateEducation(ctx context.Context, education *models.Education) error
 	DeleteEducation(ctx context.Context, id string) error
 }
+
+// ExtraStore is the persistence contract for extras.
+type ExtraStore interface {
+	ListExtras(ctx context.Context) ([]models.Extra, error)
+	FindExtraByID(ctx context.Context, id string) (*models.Extra, error)
+	CreateExtra(ctx context.Context, extra *models.Extra) error
+	UpdateExtra(ctx context.Context, extra *models.Extra) error
+	DeleteExtra(ctx context.Context, id string) error
+}
