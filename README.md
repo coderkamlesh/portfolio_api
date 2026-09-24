@@ -2,7 +2,7 @@
 
 Backend API for a personal portfolio & resume CMS. Powers the public portfolio site and a secure admin panel to manage projects, experience, skills, and generate an ATS-friendly PDF resume on the fly.
 
-- **Runtime:** Go 1.25
+- **Runtime:** Go 1.27
 - **Router:** go-chi/chi v5
 - **Database:** Turso (libSQL / Turso Database)
 - **Deploy:** AWS Lambda (container image via ECR) + Lambda Web Adapter
@@ -14,7 +14,7 @@ Backend API for a personal portfolio & resume CMS. Powers the public portfolio s
 
 | Layer | Choice | Why |
 |---|---|---|
-| Language | Go 1.25 | Fast, static binary, tiny cold start |
+| Language | Go 1.27 | Fast, static binary, tiny cold start |
 | Router | go-chi/chi v5 | Lightweight, `net/http`-compatible, zero deps |
 | DB Driver | `turso.tech/database/tursogo-serverless` | Pure Go, HTTP-based, Lambda-friendly |
 | Database | Turso | Edge SQLite, generous free tier |
@@ -51,7 +51,7 @@ portfolio_api/
 
 ## Prerequisites
 
-- Go 1.25+
+- Go 1.27+
 - Docker (for container builds)
 - Turso CLI (`turso db show`, `turso db tokens create`)
 - AWS account (Lambda + ECR access)

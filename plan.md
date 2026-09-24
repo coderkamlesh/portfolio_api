@@ -42,7 +42,7 @@ Sequence-wise implementation plan. Har module ka structure same:
 
 ---
 
-## Module 2: Profile ⬜
+## Module 2: Profile ✅
 
 **Table:** `profile_details` (singleton)
 
@@ -62,9 +62,11 @@ Sequence-wise implementation plan. Har module ka structure same:
 - `internal/service/profile_service.go`
 - `internal/handler/profile_handler.go`
 
+**Status:** ✅ Complete
+
 ---
 
-## Module 3: Skills ⬜
+## Module 3: Skills ✅
 
 **Tables:** `skill_categories`, `skills`
 
@@ -89,6 +91,9 @@ Sequence-wise implementation plan. Har module ka structure same:
 - `internal/repository/skill_repo.go`
 - `internal/service/skill_service.go`
 - `internal/handler/skill_handler.go`
+- `internal/service/skill_service_test.go`
+
+**Status:** ✅ Complete
 
 ---
 
@@ -339,9 +344,9 @@ Sequence-wise implementation plan. Har module ka structure same:
 
 ```
 1. Auth              ✅
-2. Profile           ⬜ ← next
-3. Skills            ⬜
-4. Experience        ⬜
+2. Profile           ✅
+3. Skills            ✅
+4. Experience        ⬜ ← next
 5. Projects          ⬜
 6. Education         ⬜
 7. Extras            ⬜
