@@ -97,7 +97,7 @@ Sequence-wise implementation plan. Har module ka structure same:
 
 ---
 
-## Module 4: Experience ⬜
+## Module 4: Experience ✅
 
 **Tables:** `work_experiences`, `experience_bullets`
 
@@ -121,7 +121,7 @@ Sequence-wise implementation plan. Har module ka structure same:
 
 ---
 
-## Module 5: Projects ⬜
+## Module 5: Projects ✅
 
 **Tables:** `projects`, `project_bullets`
 
@@ -144,6 +144,8 @@ Sequence-wise implementation plan. Har module ka structure same:
 - `internal/repository/project_repo.go`
 - `internal/service/project_service.go`
 - `internal/handler/project_handler.go`
+
+**Status:** ✅ Complete
 
 ---
 
@@ -346,9 +348,9 @@ Sequence-wise implementation plan. Har module ka structure same:
 1. Auth              ✅
 2. Profile           ✅
 3. Skills            ✅
-4. Experience        ⬜ ← next
-5. Projects          ⬜
-6. Education         ⬜
+4. Experience        ✅
+5. Projects          ✅
+6. Education         ⬜ ← next
 7. Extras            ⬜
 8. Social Links      ⬜
 9. File Upload (S3)  ⬜

@@ -89,3 +89,17 @@ type ExperienceStore interface {
 	// transaction.
 	DeleteExperience(ctx context.Context, id string) error
 }
+
+// ProjectStore is the persistence contract for projects and project_bullets.
+type ProjectStore interface {
+	ListProjects(ctx context.Context) ([]models.Project, error)
+	FindProjectByID(ctx context.Context, id string) (*models.Project, error)
+	// ListProjectBullets returns the bullets of one project, or the bullets of
+	// every project when projectID is empty.
+	ListProjectBullets(ctx context.Context, projectID string) ([]models.ProjectBullet, error)
+	// SaveProject writes the row and replaces its bullets in one transaction.
+	SaveProject(ctx context.Context, project *models.Project, bullets []models.ProjectBullet) error
+	// DeleteProject removes the row together with its bullets in one
+	// transaction.
+	DeleteProject(ctx context.Context, id string) error
+}

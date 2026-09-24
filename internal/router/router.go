@@ -52,6 +52,10 @@ func New(ctx context.Context, cfg *config.Config, db *database.DB) (http.Handler
 		Experiences: repository.NewExperienceRepository(db),
 	})
 	experienceHandler := handler.NewExperienceHandler(experienceService)
+	projectService := service.NewProjectService(service.ProjectDeps{
+		Projects: repository.NewProjectRepository(db),
+	})
+	projectHandler := handler.NewProjectHandler(projectService)
 
 	r := chi.NewRouter()
 	r.Use(chimw.RequestID)
@@ -96,6 +100,8 @@ func New(ctx context.Context, cfg *config.Config, db *database.DB) (http.Handler
 		r.Get("/profile", profileHandler.PublicProfile)
 		r.Get("/skills", skillHandler.PublicSkills)
 		r.Get("/experience", experienceHandler.PublicExperiences)
+		r.Get("/projects", projectHandler.PublicProjects)
+		r.Get("/projects/{id}", projectHandler.PublicProject)
 	})
 
 	r.Route("/api/admin", func(r chi.Router) {
@@ -118,6 +124,11 @@ func New(ctx context.Context, cfg *config.Config, db *database.DB) (http.Handler
 		r.Post("/experience", experienceHandler.CreateExperience)
 		r.Put("/experience/{id}", experienceHandler.UpdateExperience)
 		r.Delete("/experience/{id}", experienceHandler.DeleteExperience)
+
+		r.Get("/projects", projectHandler.ListProjects)
+		r.Post("/projects", projectHandler.CreateProject)
+		r.Put("/projects/{id}", projectHandler.UpdateProject)
+		r.Delete("/projects/{id}", projectHandler.DeleteProject)
 	})
 
 	return r, nil

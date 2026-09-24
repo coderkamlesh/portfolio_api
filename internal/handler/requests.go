@@ -128,3 +128,46 @@ func (b experienceRequest) input() service.ExperienceInput {
 		DisplayOrder:   b.DisplayOrder,
 	}
 }
+
+// projectRequest is the body of POST /api/admin/projects and
+// PUT /api/admin/projects/{id}. Bullets are replaced wholesale, in payload
+// order. An omitted display_order keeps the stored order on update and defaults
+// to 0 on create.
+type projectRequest struct {
+	Title        string   `json:"title"`
+	Tagline      string   `json:"tagline"`
+	Description  string   `json:"description"`
+	ProjectType  string   `json:"project_type"`
+	Role         string   `json:"role"`
+	Technologies []string `json:"technologies"`
+	RepoURL      string   `json:"repo_url"`
+	LiveURL      string   `json:"live_url"`
+	ImageURL     string   `json:"image_url"`
+	StartDate    string   `json:"start_date"`
+	EndDate      string   `json:"end_date"`
+	Status       string   `json:"status"`
+	IsFeatured   bool     `json:"is_featured"`
+	Bullets      []string `json:"bullets"`
+	DisplayOrder *int     `json:"display_order"`
+}
+
+// input converts the decoded payload into the service input.
+func (b projectRequest) input() service.ProjectInput {
+	return service.ProjectInput{
+		Title:        b.Title,
+		Tagline:      b.Tagline,
+		Description:  b.Description,
+		ProjectType:  b.ProjectType,
+		Role:         b.Role,
+		Technologies: b.Technologies,
+		RepoURL:      b.RepoURL,
+		LiveURL:      b.LiveURL,
+		ImageURL:     b.ImageURL,
+		StartDate:    b.StartDate,
+		EndDate:      b.EndDate,
+		Status:       b.Status,
+		IsFeatured:   b.IsFeatured,
+		Bullets:      b.Bullets,
+		DisplayOrder: b.DisplayOrder,
+	}
+}
