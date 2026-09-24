@@ -1,15 +1,22 @@
 package main
 
 import (
+	"context"
 	"log"
-	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/coderkamlesh/portfolio_api/internal/config"
 	"github.com/coderkamlesh/portfolio_api/internal/database"
-	"github.com/go-chi/chi/v5"
+	"github.com/coderkamlesh/portfolio_api/internal/router"
+	"github.com/coderkamlesh/portfolio_api/internal/server"
 )
 
 func main() {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
 	cfg := config.Load()
 
 	db, err := database.Connect(cfg.TursoURL, cfg.TursoToken)
@@ -18,23 +25,13 @@ func main() {
 	}
 	defer db.Close()
 
-	r := chi.NewRouter()
+	handler, err := router.New(ctx, cfg, db)
+	if err != nil {
+		log.Fatalf("❌ Router setup failed: %v", err)
+	}
 
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"ok","service":"portfolio-api"}`))
-	})
-
-	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"Health is good","message":"portfolio api project running"}`))
-	})
-
-	addr := ":" + cfg.ServerPort
-	log.Printf("🚀 Server running on %s", addr)
-	if err := http.ListenAndServe(addr, r); err != nil {
+	if err := server.Run(ctx, cfg, handler); err != nil {
 		log.Fatalf("❌ Server failed: %v", err)
 	}
+	log.Println("👋 Server stopped")
 }

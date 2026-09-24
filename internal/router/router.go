@@ -1,0 +1,94 @@
+// Package router wires configuration, database, repositories, services,
+// handlers and middleware into the HTTP handler served by cmd/api and
+// cmd/lambda.
+package router
+
+import (
+	"context"
+	"encoding/json"
+	"log"
+	"net/http"
+
+	"github.com/coderkamlesh/portfolio_api/internal/config"
+	"github.com/coderkamlesh/portfolio_api/internal/database"
+	"github.com/coderkamlesh/portfolio_api/internal/email"
+	"github.com/coderkamlesh/portfolio_api/internal/handler"
+	"github.com/coderkamlesh/portfolio_api/internal/middleware"
+	"github.com/coderkamlesh/portfolio_api/internal/repository"
+	"github.com/coderkamlesh/portfolio_api/internal/security"
+	"github.com/coderkamlesh/portfolio_api/internal/service"
+	"github.com/go-chi/chi/v5"
+	chimw "github.com/go-chi/chi/v5/middleware"
+)
+
+// New builds the complete HTTP handler.
+func New(ctx context.Context, cfg *config.Config, db *database.DB) (http.Handler, error) {
+	mailer, err := email.NewSender(ctx, cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	tokens := security.NewTokenManager(cfg.JWTSecret, cfg.JWTIssuer, cfg.AccessTokenTTL)
+	authService := service.NewAuthService(service.Deps{
+		Admins:  repository.NewAdminRepository(db),
+		TwoFA:   repository.NewTwoFARepository(db),
+		OTPs:    repository.NewOTPRepository(db),
+		Refresh: repository.NewRefreshTokenRepository(db),
+		Audit:   repository.NewAuditRepository(db),
+		Mailer:  mailer,
+		Tokens:  tokens,
+		Cfg:     cfg,
+	})
+	authHandler := handler.NewAuthHandler(authService)
+
+	r := chi.NewRouter()
+	r.Use(chimw.RequestID)
+	r.Use(chimw.RealIP)
+	r.Use(chimw.Recoverer)
+	r.Use(middleware.Logger)
+	r.Use(middleware.CORS(cfg.AllowedOrigins))
+
+	r.Get("/", func(w http.ResponseWriter, _ *http.Request) {
+		writeJSON(w, http.StatusOK, map[string]string{"status": "ok", "service": "portfolio-api"})
+	})
+	r.Get("/health", func(w http.ResponseWriter, _ *http.Request) {
+		writeJSON(w, http.StatusOK, map[string]string{"status": "health is good", "message": "portfolio api project running"})
+	})
+
+	r.Route("/api/auth", func(r chi.Router) {
+		// Public: sign-in flow.
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.NoStore)
+			r.Post("/login", authHandler.Login)
+			r.Post("/2fa/verify", authHandler.Verify2FA)
+			r.Post("/2fa/resend", authHandler.Resend2FA)
+			r.Post("/refresh", authHandler.Refresh)
+			r.Post("/password/forgot", authHandler.ForgotPassword)
+			r.Post("/password/reset", authHandler.ResetPassword)
+		})
+
+		// Admin session (JWT access token required).
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.RequireAuth(tokens))
+			r.Use(middleware.NoStore)
+			r.Get("/me", authHandler.Me)
+			r.Post("/logout", authHandler.Logout)
+			r.Post("/password/change", authHandler.ChangePassword)
+			r.Get("/2fa", authHandler.TwoFAStatus)
+			r.Post("/2fa/email/enable", authHandler.EnableEmail2FA)
+			r.Post("/2fa/email/disable", authHandler.DisableEmail2FA)
+		})
+	})
+
+	return r, nil
+}
+
+// writeJSON is the tiny local response helper for the infra endpoints; the
+// auth handlers use the richer version in internal/handler.
+func writeJSON(w http.ResponseWriter, status int, payload any) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(status)
+	if err := json.NewEncoder(w).Encode(payload); err != nil {
+		log.Printf("⚠️  router: encode response failed: %v", err)
+	}
+}
