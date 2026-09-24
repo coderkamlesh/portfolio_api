@@ -246,7 +246,7 @@ Sequence-wise implementation plan. Har module ka structure same:
 
 ---
 
-## Module 10: Resume PDF Generation ⬜
+## Module 10: Resume PDF Generation ✅
 
 **Library:** `github.com/go-pdf/fpdf`
 
@@ -260,13 +260,26 @@ Sequence-wise implementation plan. Har module ka structure same:
 - `GET /api/public/resume/download`
 
 **Files:**
+- `internal/resume/data.go` (template contract)
+- `internal/resume/renderer.go` (fpdf layout)
+- `internal/resume/format.go` (ASCII sanitizer + date/byte helpers)
+- `internal/resume/resume_test.go`
 - `internal/service/resume_service.go`
 - `internal/handler/resume_handler.go`
-- `internal/service/templates/resume.go` (layout logic)
+
+**Doc:** `docs/resume.md`
+
+**Status:** ✅ Complete
+
+**Notes:**
+- Single column, selectable text, no icons / symbol fonts. Contact details body flow me, kyunki ATS parsers page header skip karte hain.
+- **ASCII-only by design.** fpdf core fonts CP1252 hain aur string bytes verbatim likhte hain, isliye `•` (U+2022) mojibake ban jaata. `sanitize()` curly quotes, en/em-dashes, bullets, NBSP aur accented Latin ko ASCII me fold karta hai; unknown rune → visible `?`.
+- Analytics write best-effort — insert fail ho to visitor ko PDF phir bhi milta hai.
+- Missing profile → `404 profile_not_found` (500 nahi). Naam ke bina resume render karna bekaar hai.
 
 ---
 
-## Module 11: Analytics ⬜
+## Module 11: Analytics ✅
 
 **Table:** `resume_downloads`
 
@@ -278,34 +291,63 @@ Sequence-wise implementation plan. Har module ka structure same:
 - `GET /api/admin/analytics/downloads`
 
 **Files:**
+- `internal/models/analytics.go`
 - `internal/repository/analytics_repo.go`
 - `internal/service/analytics_service.go`
-- `internal/handler/analytics_handler.go`
+- `internal/handler/resume_handler.go` (`AnalyticsHandler`)
+
+**Config:** `ANALYTICS_HASH_SECRET`
+
+**Doc:** `docs/analytics.md`
+
+**Status:** ✅ Complete
+
+**Notes:**
+- IP **HMAC-SHA256** with a dedicated secret. `JWT_SECRET` reuse nahi — do alag keys ka blast radius alag rehta hai.
+- Empty secret ⇒ empty hash ⇒ `unique_ips` **0, 1 nahi**. Unconfigured deployment pe confident-looking `1` galat hota; SQL NULL/empty rows distinct count se exclude hote hain.
+- Window `days` 1–365 clamp; 0 / negative / non-numeric → default 30. `by_day` always dense hai (missing days explicit `0`) — chart ke liye ready.
+- Dono bounds `startOfToday` se derive hote hain. Mid-day timestamp pe `+24h` *kal* de deta, jis se future day report hota aur series me phantom zero aata.
 
 ---
 
-## Module 12: Audit Log ⬜
+## Module 12: Audit Log ✅
 
 **Table:** `audit_log`
 
 **Scope:**
-- Middleware/hook — every admin write logs old + new JSON
+- Service-layer hook — every admin write logs old + new JSON
 - Admin view: paginated audit trail
 
 **Endpoints:**
 - `GET /api/admin/audit-log`
 
 **Files:**
-- `internal/middleware/audit.go`
-- `internal/repository/audit_repo.go`
-- `internal/service/audit_service.go`
+- `internal/service/audit.go` (actor context + `Audit.Record`)
+- `internal/service/audit_query_service.go`
+- `internal/repository/audit.go` (List/Count)
 - `internal/handler/audit_handler.go`
+- `internal/handler/respond.go` (`adminContext`)
+
+**Doc:** `docs/audit-log.md`
+
+**Status:** ✅ Complete
+
+**Notes:**
+- **Service layer, not middleware.** Generic HTTP middleware ko `old_value` nahi pata hota — service ke paas record ka before/after state hota hai. Middleware se sirf "kaun, kab, kis route pe" milta, "kyun badla" nahi.
+- Actor ID handler inject karta hai (`service.WithActor(ctx, adminID)`), isliye kisi bhi service method ka signature nahi badla — zero test churn. 20 call sites switched.
+- 8 entity types. Social links ka diff **per platform** nahi, poora set snapshot hai (API `PUT /social-links` se replace karti hai), isliye uska `entity_id` khali rehta hai.
+- `limit` 1–200, `offset` 0–10000 clamp. Sirf unknown `action` pe `400` — baaki query params silently correct hote hain, kyunki wo dashboard hints hain, strict contract nahi.
+- Audit write failure logged + swallowed: full audit table se admin ka edit rollback nahi hona chahiye. Ek trail row khona behtar hai edit se.
 
 ---
 
 ## Module 13: Frontend — SolidJS ⬜
 
 **Repo:** alag (ya monorepo me `web/` folder)
+
+**Integration plan:** `docs/frontend-integration-plan.md`
+**Agent rules:** `docs/FRONTEND_AGENT_RULES.md` — ise UI root me copy karo
+**API docs:** `docs/*.md` — UI root me `docs/` folder bana ke saari files copy karo
 
 ### 13.1 Public Site
 - Hero (profile)
@@ -360,10 +402,10 @@ Sequence-wise implementation plan. Har module ka structure same:
 7. Extras            ✅
 8. Social Links      ✅
 9. File Upload (S3)  ✅
-10. Resume PDF       ⬜ ← next
-11. Analytics        ⬜
-12. Audit Log        ⬜
-13. Frontend         ⬜
+10. Resume PDF        ✅
+11. Analytics         ✅
+12. Audit Log         ✅
+13. Frontend          ⬜ ← next
 ```
 
 **Kyun ye order:**
