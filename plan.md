@@ -15,12 +15,12 @@ Sequence-wise implementation plan. Har module ka structure same:
 
 ## Module 1: Auth ✅
 
-**Tables:** `admin_users`, `admin_2fa`, `otp_challenges`, `refresh_tokens`
+**Tables:** `admin_users`, `otp_challenges`, `refresh_tokens`
 
 **Scope:**
 - Password hashing (argon2id)
 - Login (username/email + password)
-- Mandatory email OTP 2FA (auto-provisioned, cannot be disabled)
+- Mandatory email OTP 2FA (no config, cannot be disabled)
 - JWT access + rotating refresh tokens
 - Password forgot/reset/change
 - Logout / token revocation
@@ -36,7 +36,6 @@ Sequence-wise implementation plan. Har module ka structure same:
 - `POST /api/auth/logout`
 - `POST /api/auth/password/change`
 - `GET /api/auth/2fa`
-- `POST /api/auth/2fa/email/enable`
 
 **Status:** ✅ Complete
 
@@ -345,7 +344,6 @@ Sequence-wise implementation plan. Har module ka structure same:
 
 **Repo:** alag (ya monorepo me `web/` folder)
 
-**Integration plan:** `docs/frontend-integration-plan.md`
 **Agent rules:** `docs/FRONTEND_AGENT_RULES.md` — ise UI root me copy karo
 **API docs:** `docs/*.md` — UI root me `docs/` folder bana ke saari files copy karo
 

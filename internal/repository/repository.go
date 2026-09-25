@@ -65,3 +65,12 @@ func boolToInt(v bool) int {
 func boolFromInt(v sql.NullInt64) bool {
 	return v.Valid && v.Int64 != 0
 }
+
+// nullString turns an empty string into a SQL NULL so optional columns stay
+// nullable.
+func nullString(v string) any {
+	if v == "" {
+		return nil
+	}
+	return v
+}

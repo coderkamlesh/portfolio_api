@@ -7,8 +7,6 @@
 //	go run ./cmd/adminctl -action=create -username=kamlesh -email=me@example.com -password='...'
 //	go run ./cmd/adminctl -action=list
 //	go run ./cmd/adminctl -action=reset-password -username=kamlesh
-//	go run ./cmd/adminctl -action=enable-2fa -username=kamlesh
-//	go run ./cmd/adminctl -action=disable-2fa -username=kamlesh   # emergency unlock
 //	go run ./cmd/adminctl -action=deactivate -username=kamlesh
 //
 // Tip: omit -password and it is read from stdin instead, which keeps it out of
@@ -39,7 +37,7 @@ func main() {
 	log.SetFlags(0)
 
 	action := flag.String("action", "create",
-		"one of: create, list, reset-password, activate, deactivate, enable-2fa, disable-2fa")
+		"one of: create, list, reset-password, activate, deactivate")
 	username := flag.String("username", "", "admin username")
 	email := flag.String("email", "", "admin email (required for create)")
 	password := flag.String("password", "", "admin password (omit to read it from stdin)")
@@ -61,16 +59,15 @@ func main() {
 	defer db.Close()
 
 	admins := repository.NewAdminRepository(db)
-	twoFA := repository.NewTwoFARepository(db)
 
-	if err := run(ctx, *action, admins, twoFA, *username, *email, *password); err != nil {
+	if err := run(ctx, *action, admins, *username, *email, *password); err != nil {
 		log.Fatalf("❌ %s: %v", *action, err)
 	}
 }
 
 // run dispatches the requested action.
 func run(ctx context.Context, action string, admins *repository.AdminRepository,
-	twoFA *repository.TwoFARepository, username, email, password string) error {
+	username, email, password string) error {
 
 	switch action {
 	case "create":
@@ -81,8 +78,6 @@ func run(ctx context.Context, action string, admins *repository.AdminRepository,
 		return resetPassword(ctx, admins, username, password)
 	case "activate", "deactivate":
 		return setActive(ctx, admins, username, action == "activate")
-	case "enable-2fa", "disable-2fa":
-		return setTwoFA(ctx, twoFA, admins, username, action == "enable-2fa")
 	default:
 		return fmt.Errorf("unknown -action %q", action)
 	}
@@ -189,43 +184,6 @@ func setActive(ctx context.Context, admins *repository.AdminRepository, username
 		return err
 	}
 	fmt.Printf("✅ %q is_active=%t\n", account.Username, active)
-	return nil
-}
-
-// setTwoFA flips the EMAIL_OTP row so an admin can be unlocked out-of-band when
-// SES or the mailbox is unavailable.
-func setTwoFA(ctx context.Context, twoFA *repository.TwoFARepository, admins *repository.AdminRepository,
-	username string, enabled bool) error {
-
-	account, err := findAdmin(ctx, admins, username)
-	if err != nil {
-		return err
-	}
-
-	if !enabled {
-		if err := twoFA.SetEnabled(ctx, account.ID, models.TwoFAMethodEmailOTP, false, time.Now().UTC()); err != nil {
-			if errors.Is(err, models.ErrNotFound) {
-				fmt.Printf("ℹ️  %q has no 2FA row to disable.\n", account.Username)
-				return nil
-			}
-			return err
-		}
-		fmt.Printf("⚠️  Email OTP disabled for %q. Re-enable before exposing the panel!\n", account.Username)
-		return nil
-	}
-
-	now := time.Now().UTC()
-	if err := twoFA.Upsert(ctx, &models.TwoFactorConfig{
-		ID:          ids.New(),
-		AdminID:     account.ID,
-		Method:      models.TwoFAMethodEmailOTP,
-		IsEnabled:   true,
-		ConfirmedAt: &now,
-		CreatedAt:   now,
-	}); err != nil {
-		return err
-	}
-	fmt.Printf("✅ Email OTP 2FA enabled for %q.\n", account.Username)
 	return nil
 }
 

@@ -119,7 +119,6 @@ turso db shell portfoliov2 < migrations/001_init.sql
 | Table | Purpose |
 |---|---|
 | `admin_users` | Admin accounts (argon2id hashed) |
-| `admin_2fa` | Per-admin 2FA config (TOTP / Email) |
 | `backup_codes` | One-time recovery codes |
 | `otp_challenges` | Email OTP challenges |
 | `refresh_tokens` | JWT refresh tokens |

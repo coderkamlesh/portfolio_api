@@ -151,3 +151,30 @@ func (s *AuthService) validatePassword(password string) error {
 	}
 	return nil
 }
+
+// verifyAdminPassword re-authenticates a signed-in admin for sensitive actions.
+func (s *AuthService) verifyAdminPassword(ctx context.Context, adminID, password string) (*models.AdminUser, error) {
+	admin, err := s.admins.FindByID(ctx, adminID)
+	if err != nil {
+		if errors.Is(err, models.ErrNotFound) {
+			return nil, errInvalidCredentials()
+		}
+		return nil, err
+	}
+	if !admin.IsActive {
+		return nil, errAccountDisabled()
+	}
+	if password == "" {
+		return nil, errInvalidPassword()
+	}
+
+	ok, err := security.VerifyPassword(admin.PasswordHash, password)
+	if err != nil {
+		return nil, wrapErr(err, 500, "internal_error", "Stored credentials are unreadable.")
+	}
+	if !ok {
+		log.Printf("⚠️  auth: password re-confirmation failed for admin %s", admin.ID)
+		return nil, errInvalidPassword()
+	}
+	return admin, nil
+}

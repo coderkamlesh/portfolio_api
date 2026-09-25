@@ -59,7 +59,6 @@ func New(ctx context.Context, cfg *config.Config, db *database.DB) (http.Handler
 	auditRecorder := service.NewAudit(auditRepository, nil)
 	authService := service.NewAuthService(service.Deps{
 		Admins:  repository.NewAdminRepository(db),
-		TwoFA:   repository.NewTwoFARepository(db),
 		OTPs:    repository.NewOTPRepository(db),
 		Refresh: repository.NewRefreshTokenRepository(db),
 		Audit:   repository.NewAuditRepository(db),
@@ -164,7 +163,6 @@ func New(ctx context.Context, cfg *config.Config, db *database.DB) (http.Handler
 			r.Post("/logout", authHandler.Logout)
 			r.Post("/password/change", authHandler.ChangePassword)
 			r.Get("/2fa", authHandler.TwoFAStatus)
-			r.Post("/2fa/email/enable", authHandler.EnableEmail2FA)
 		})
 	})
 

@@ -52,11 +52,6 @@ type resetPasswordRequest struct {
 	NewPassword string `json:"new_password"`
 }
 
-// confirmPasswordRequest is the body of the 2FA confirmation endpoint.
-type confirmPasswordRequest struct {
-	Password string `json:"password"`
-}
-
 // updateProfileRequest is the full replacement body of PUT /api/admin/profile.
 type updateProfileRequest struct {
 	FullName        string `json:"full_name"`

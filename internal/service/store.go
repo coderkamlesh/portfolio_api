@@ -15,14 +15,6 @@ type AdminStore interface {
 	UpdatePassword(ctx context.Context, id, passwordHash string, at time.Time) error
 }
 
-// TwoFAStore is the persistence contract for admin_2fa.
-type TwoFAStore interface {
-	FindByAdminAndMethod(ctx context.Context, adminID, method string) (*models.TwoFactorConfig, error)
-	ListByAdmin(ctx context.Context, adminID string) ([]models.TwoFactorConfig, error)
-	Upsert(ctx context.Context, cfg *models.TwoFactorConfig) error
-	SetEnabled(ctx context.Context, adminID, method string, enabled bool, at time.Time) error
-}
-
 // OTPStore is the persistence contract for otp_challenges.
 type OTPStore interface {
 	Create(ctx context.Context, c *models.OTPChallenge) error

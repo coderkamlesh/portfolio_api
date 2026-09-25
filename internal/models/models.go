@@ -17,11 +17,9 @@ var ErrNotFound = errors.New("models: not found")
 // the insert.
 var ErrConflict = errors.New("models: conflict")
 
-// 2FA methods (admin_2fa.method).
-const (
-	TwoFAMethodEmailOTP = "EMAIL_OTP"
-	TwoFAMethodTOTP     = "TOTP"
-)
+// The mandatory second factor for admin login. Email OTP cannot be turned off,
+// so this is the only method the API ever reports.
+const TwoFAMethodEmailOTP = "EMAIL_OTP"
 
 // OTP purposes (otp_challenges.purpose).
 const (
@@ -42,7 +40,6 @@ const (
 	AuditPasswordChanged    = "PASSWORD_CHANGED"
 	AuditPasswordReset      = "PASSWORD_RESET"
 	AuditPasswordResetAsked = "PASSWORD_RESET_REQUESTED"
-	AuditTwoFAEnabled       = "TWO_FA_ENABLED"
 	AuditRateLimited        = "RATE_LIMITED"
 )
 
@@ -62,17 +59,6 @@ type AdminUser struct {
 	LastLoginAt  *time.Time
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
-}
-
-// TwoFactorConfig maps admin_2fa.
-type TwoFactorConfig struct {
-	ID          string
-	AdminID     string
-	Method      string
-	TOTPSecret  string
-	IsEnabled   bool
-	ConfirmedAt *time.Time
-	CreatedAt   time.Time
 }
 
 // OTPChallenge maps otp_challenges.

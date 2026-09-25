@@ -17,17 +17,6 @@ CREATE TABLE admin_users (
     updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
-CREATE TABLE admin_2fa (
-    id              TEXT PRIMARY KEY,
-    admin_id        TEXT NOT NULL REFERENCES admin_users(id) ON DELETE CASCADE,
-    method          TEXT NOT NULL,                 -- 'TOTP' | 'EMAIL_OTP'
-    totp_secret     TEXT,
-    is_enabled      INTEGER NOT NULL DEFAULT 0,
-    confirmed_at    TEXT,
-    created_at      TEXT NOT NULL DEFAULT (datetime('now'))
-);
-CREATE INDEX idx_2fa_admin ON admin_2fa(admin_id);
-
 CREATE TABLE backup_codes (
     id              TEXT PRIMARY KEY,
     admin_id        TEXT NOT NULL REFERENCES admin_users(id) ON DELETE CASCADE,

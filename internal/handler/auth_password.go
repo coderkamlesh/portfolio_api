@@ -112,29 +112,3 @@ func (h *AuthHandler) TwoFAStatus(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, status)
 }
 
-// EnableEmail2FA handles POST /api/auth/2fa/email/enable.
-func (h *AuthHandler) EnableEmail2FA(w http.ResponseWriter, r *http.Request) {
-	adminID, ok := middleware.AdminIDFromContext(r.Context())
-	if !ok {
-		writeErr(w, r, unauthorizedContextError())
-		return
-	}
-
-	var body confirmPasswordRequest
-	if err := decodeJSON(w, r, &body); err != nil {
-		writeErr(w, r, err)
-		return
-	}
-	if body.Password == "" {
-		writeErr(w, r, requiredFieldError("password"))
-		return
-	}
-
-	status, err := h.svc.EnableEmailOTP(r.Context(), adminID, service.PasswordConfirmationInput{Password: body.Password})
-	if err != nil {
-		writeErr(w, r, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, status)
-}
-

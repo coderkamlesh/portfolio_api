@@ -61,11 +61,6 @@ type ResetPasswordInput struct {
 	NewPassword string
 }
 
-// PasswordConfirmationInput is used by the sensitive 2FA confirmation endpoint.
-type PasswordConfirmationInput struct {
-	Password string
-}
-
 // AdminView is the safe projection of an admin account for API responses.
 type AdminView struct {
 	ID          string     `json:"id"`
@@ -108,14 +103,12 @@ type LoginResult struct {
 	Admin             *AdminView     `json:"admin,omitempty"`
 }
 
-// TwoFAStatus tells the admin panel which second factor is active.
+// TwoFAStatus tells the admin panel which second factor is active. Email OTP is
+// mandatory, so Required is always true and there is no enabled/disabled field.
 type TwoFAStatus struct {
-	Required    bool       `json:"required"`
-	Method      string     `json:"method"`
-	Enabled     bool       `json:"enabled"`
-	Email       string     `json:"email"` // masked
-	ConfirmedAt *time.Time `json:"confirmed_at,omitempty"`
-	UpdatedAt   *time.Time `json:"updated_at,omitempty"`
+	Required bool   `json:"required"`
+	Method   string `json:"method"`
+	Email    string `json:"email"` // masked
 }
 
 // MeView is the payload of GET /api/auth/me.

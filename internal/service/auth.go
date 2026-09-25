@@ -17,7 +17,6 @@ import (
 // the auth flows can be unit-tested with in-memory doubles.
 type Deps struct {
 	Admins  AdminStore
-	TwoFA   TwoFAStore
 	OTPs    OTPStore
 	Refresh RefreshStore
 	Audit   AuditStore
@@ -31,7 +30,6 @@ type Deps struct {
 // AuthService owns every admin authentication flow.
 type AuthService struct {
 	admins       AdminStore
-	twoFA        TwoFAStore
 	otps         OTPStore
 	refresh      RefreshStore
 	audit        AuditStore
@@ -50,7 +48,6 @@ func NewAuthService(deps Deps) *AuthService {
 	}
 	return &AuthService{
 		admins:       deps.Admins,
-		twoFA:        deps.TwoFA,
 		otps:         deps.OTPs,
 		refresh:      deps.Refresh,
 		audit:        deps.Audit,
@@ -114,10 +111,6 @@ func (s *AuthService) Login(ctx context.Context, in LoginInput, meta RequestMeta
 				log.Printf("⚠️  auth: password rehash failed for admin %s: %v", admin.ID, err)
 			}
 		}
-	}
-
-	if _, err := s.emailTwoFAConfig(ctx, admin); err != nil {
-		return nil, err
 	}
 
 	challenge, err := s.issueOTP(ctx, admin, models.OTPPurposeLogin2FA, meta)

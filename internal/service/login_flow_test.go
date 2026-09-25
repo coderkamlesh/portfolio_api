@@ -14,7 +14,7 @@ func TestLoginChallengesWithEmailOTPAndVerifyIssuesSession(t *testing.T) {
 
 	result := h.login(t)
 	if !result.TwoFactorRequired {
-		t.Fatal("expected two_factor_required=true when AUTH_2FA_REQUIRED is on")
+		t.Fatal("expected two_factor_required=true; email OTP is mandatory")
 	}
 	if result.Tokens != nil {
 		t.Fatal("no tokens may be issued before the OTP is verified")
@@ -33,11 +33,6 @@ func TestLoginChallengesWithEmailOTPAndVerifyIssuesSession(t *testing.T) {
 	}
 	if h.mailer.count() != 1 {
 		t.Fatalf("mails sent = %d, want 1", h.mailer.count())
-	}
-
-	// The 2FA row is auto-provisioned because email OTP needs no enrollment.
-	if len(h.twoFA.rows) != 1 || !h.twoFA.rows[0].IsEnabled {
-		t.Fatalf("expected an enabled admin_2fa row, got %+v", h.twoFA.rows)
 	}
 
 	verified, err := h.svc.VerifyLoginOTP(context.Background(), VerifyOTPInput{

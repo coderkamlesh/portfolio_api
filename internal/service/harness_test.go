@@ -25,7 +25,6 @@ const (
 type harness struct {
 	svc     *AuthService
 	admins  *fakeAdminStore
-	twoFA   *fakeTwoFAStore
 	otps    *fakeOTPStore
 	refresh *fakeRefreshStore
 	audit   *fakeAuditStore
@@ -46,7 +45,6 @@ func newHarness(t *testing.T) *harness {
 	start := time.Date(2026, 9, 24, 10, 0, 0, 0, time.UTC)
 	h := &harness{
 		admins:  newFakeAdminStore(),
-		twoFA:   &fakeTwoFAStore{},
 		otps:    &fakeOTPStore{},
 		refresh: &fakeRefreshStore{},
 		audit:   &fakeAuditStore{},
@@ -82,7 +80,6 @@ func newHarness(t *testing.T) *harness {
 
 	h.svc = NewAuthService(Deps{
 		Admins:  h.admins,
-		TwoFA:   h.twoFA,
 		OTPs:    h.otps,
 		Refresh: h.refresh,
 		Audit:   h.audit,

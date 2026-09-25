@@ -145,7 +145,7 @@ func TestCurrentAdminReportsTwoFactorAndSessions(t *testing.T) {
 	if me.Admin == nil || me.Admin.Username != testAdminUser {
 		t.Fatalf("unexpected admin: %+v", me.Admin)
 	}
-	if me.TwoFactor == nil || !me.TwoFactor.Enabled || !me.TwoFactor.Required {
+	if me.TwoFactor == nil || !me.TwoFactor.Required {
 		t.Fatalf("unexpected 2FA status: %+v", me.TwoFactor)
 	}
 	if me.TwoFactor.Method != models.TwoFAMethodEmailOTP {
